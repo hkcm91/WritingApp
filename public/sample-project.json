@@ -1,0 +1,40 @@
+{
+  "story_bible": "TITLE / FANDOM:    Embers of the Vale (original dark-fantasy setting)\nPOV & TENSE:       first person (Maren), past tense\nHEAT LEVEL:        4 (explicit, emotionally grounded; door closes only where noted)\nTONE:              slow-burn, angsty, enemies-to-lovers, undercurrent of political danger\nWORLD / CANON RULES:\n  - Magic exists but is licensed by the Guild; unlicensed use is a hanging offense.\n  - Maren's maps are enchanted — they redraw themselves, which is why the Guild wants her back and why Thorne can't trust her.\n  - The keep is snowbound four months a year. Chapters 1–6 all take place inside it.\nCONTINUITY NOTES:\n  - Maren's left hand is scarred from the fire that got her exiled. Thorne noticed it in Ch 1; she caught him looking.\n  - They have NOT kissed yet as of Ch 2. First kiss is planned for Ch 3.\n  - Thorne calls her 'Mapmaker,' never 'Maren.' The first time he uses her name should land hard.",
+  "characters": [
+    {
+      "name": "Maren Voss (28)",
+      "description": "Exiled cartographer; dry wit, guarded, touch-starved and hates that she is. Wants: to earn her way back into the Guild. Kinks/limits: praise, being pinned, slow teasing; limits: no degradation, no pain play.",
+      "image": ""
+    },
+    {
+      "name": "Captain Elias Thorne (34)",
+      "description": "Warden of the border keep holding her under house arrest; formal in public, unravels in private. Wants: to keep the keep out of the war. Kinks/limits: giving control after being asked to take it, light restraint (scarves, not cuffs); limits: nothing in public spaces, no name-calling.",
+      "image": ""
+    },
+    {
+      "name": "Sera (30)",
+      "description": "Keep's healer, Maren's only friend; comic relief, sees everything.",
+      "image": ""
+    }
+  ],
+  "notes_want": "- Thorne's petition to review Maren's exile should surface again before Ch 6.\n- A scene where Maren maps the keep itself and the map redraws a room that shouldn't exist.\n- Sera figures it out before either of them says anything, and says nothing — until the worst possible moment.",
+  "notes_avoid": "- No miscommunication-as-plot: when they talk, they say true things.\n- No love triangle. Sera is a friend, full stop.\n- Never use the phrases 'claimed her mouth', 'released a breath she didn't know she was holding', or 'undid him/her'.\n- No flashback scenes to the fire — it stays in dialogue and memory fragments only.",
+  "running_synopsis": "Ch 1: Maren arrives at Blackfell Keep under escort and is placed in Captain Thorne's custody for the winter. Their first meeting is hostile — he confiscates her mapmaking tools, she picks the lock on the storeroom to steal them back, and he catches her at it but, inexplicably, doesn't report it. Sera warns Maren that Thorne is fair but watches everything.\n\nCh 2: A storm seals the keep. Forced to share watch duty on the wall, Maren and Thorne argue about her exile and she realizes he's read her entire Guild file — including the parts she's ashamed of. The argument turns into something charged; he steps close enough that she thinks he might kiss her, then pulls back and leaves. Maren, furious at herself, admits in narration that she wanted him to.",
+  "mode": "GENERATE",
+  "source": "CHAPTER 3 OUTLINE:\n- Midwinter feast in the great hall. Maren is required to attend as Thorne's 'guest' — public performance of custody, both hating and enjoying it.\n- Sera maneuvers them into a dance. Physical closeness for the first time since the wall. Banter with real heat under it.\n- Thorne walks her back to her quarters. Doorway scene: the almost-kiss from Ch 2 finally lands. First kiss — long, slow build, interrupted by a horn from the gate (rider arriving with Guild colors).\n- End on the interruption: whatever the rider brings, it's about Maren.",
+  "instructions": "Full chapter, ~2,500 words. Heat level for THIS chapter: 3 — the kiss is explicit in sensation and interiority but clothes stay on; save level 4 for Ch 5. Keep Maren's dry first-person voice. Thorne still calls her 'Mapmaker' — do NOT use her name yet. End on the horn/interruption cliffhanger.",
+  "temperature": 1.0,
+  "model": "cohere/command-a",
+  "chapters": [
+    {
+      "n": 1,
+      "text": "The escort left me at the gate like a parcel nobody wanted to sign for.\n\nBlackfell Keep rose out of the snow the way a bruise rises out of skin — slow, dark, inevitable. I'd drawn it a hundred times from survey sketches. The sketches had not conveyed the cold.\n\n(Sample chapter text for import testing — replace with real prose.)",
+      "summary": "Maren arrives at Blackfell Keep under escort and is placed in Captain Thorne's custody for the winter. Their first meeting is hostile — he confiscates her tools, she steals them back, and he catches her but doesn't report it. Sera warns Maren that Thorne watches everything."
+    },
+    {
+      "n": 2,
+      "text": "The storm came in off the vale at dusk and shut the world with us inside it.\n\n(Sample chapter text for import testing — replace with real prose.)",
+      "summary": "A storm seals the keep. On shared watch duty, Maren and Thorne argue about her exile; she learns he's read her Guild file. The argument turns charged — an almost-kiss he breaks off — and Maren admits to herself she wanted it."
+    }
+  ]
+}
