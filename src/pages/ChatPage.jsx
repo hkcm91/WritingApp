@@ -3,6 +3,8 @@ import { useStore, setState, getState } from "../store.js";
 import { streamCompletion } from "../api.js";
 import { CHAT_SYSTEM_PROMPT, CHAT_GREETING, extractProjectJson } from "../prompts.js";
 import { applyImport } from "../importExport.js";
+import Icon from "../components/Icon.jsx";
+import { toast } from "../toast.js";
 
 export default function ChatPage({ openSettings, goWrite }) {
   const s = useStore();
@@ -126,9 +128,9 @@ export default function ChatPage({ openSettings, goWrite }) {
   return (
     <div className="page chat-page">
       <div className="btn-row">
-        <span className="card-title"><span className="dot">●</span> Brain dump → outline</span>
+        <span className="card-title">Brain dump → outline</span>
         <span className="spacer" />
-        <button className="btn-ghost" onClick={clear}>Clear</button>
+        <button className="btn-secondary" onClick={clear}>Clear</button>
       </div>
 
       <div className="chat-log" ref={logRef}>
@@ -145,25 +147,24 @@ export default function ChatPage({ openSettings, goWrite }) {
                     <pre>{JSON.stringify(json, null, 2)}</pre>
                     <div className="btn-row">
                       <button
-                        className="btn-ghost"
-                        style={{ background: "var(--accent-strong)", color: "#fff", borderColor: "transparent" }}
+                        className="btn-apply"
                         onClick={() => {
                           try {
                             const filled = applyImport(json);
-                            say(`Applied: ${filled.join(", ")}.`, "ok");
+                            toast(`Applied: ${filled.join(", ")}.`);
                             goWrite();
                           } catch (err) {
-                            say(`Couldn't apply: ${err.message}`, "error");
+                            toast(`Couldn't apply: ${err.message}`, "error");
                           }
                         }}
                       >
                         Apply to project
                       </button>
                       <button
-                        className="btn-ghost"
+                        className="btn-secondary"
                         onClick={async () => {
                           await navigator.clipboard.writeText(JSON.stringify(json, null, 2));
-                          say("JSON copied.", "ok");
+                          toast("JSON copied.");
                         }}
                       >
                         Copy JSON
@@ -184,9 +185,10 @@ export default function ChatPage({ openSettings, goWrite }) {
           className={`mic-btn ${dictating ? "listening" : ""}`}
           onClick={toggleMic}
           disabled={!micSupported}
+          aria-label={dictating ? "Stop dictation" : "Start dictation"}
           title={micSupported ? "Dictate (speech to text)" : "Speech-to-text isn't supported in this browser (try Chrome or Edge)."}
         >
-          🎤
+          <Icon name="mic" />
         </button>
         <textarea
           value={input}
@@ -196,7 +198,9 @@ export default function ChatPage({ openSettings, goWrite }) {
           }}
           placeholder="Dump your idea — or hit the mic and just talk."
         />
-        <button className="send-btn" onClick={send} disabled={busy}>➤</button>
+        <button className="send-btn" onClick={send} disabled={busy} aria-label="Send">
+          <Icon name="send" />
+        </button>
       </div>
       <div className={`status ${status.kind}`}>{status.msg}</div>
     </div>

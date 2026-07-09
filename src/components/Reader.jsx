@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useStore, setState } from "../store.js";
+import Icon from "./Icon.jsx";
 
 const THEMES = ["sepia", "light", "dark"];
 
@@ -56,8 +57,8 @@ export default function Reader({ items, startIndex = 0, onClose }) {
           </button>
           <button className="reader-btn" title="Smaller text" onClick={() => setState({ readerFontSize: Math.max(15, s.readerFontSize - 1) })}>A−</button>
           <button className="reader-btn" title="Larger text" onClick={() => setState({ readerFontSize: Math.min(30, s.readerFontSize + 1) })}>A+</button>
-          <button className="reader-btn" title="Toggle full screen" onClick={toggleFullscreen}>⛶</button>
-          <button className="reader-btn" title="Close (Esc)" onClick={close}>✕</button>
+          <button className="reader-btn" title="Toggle full screen" aria-label="Toggle full screen" onClick={toggleFullscreen}><Icon name="maximize" /></button>
+          <button className="reader-btn" title="Close (Esc)" aria-label="Close reader" onClick={close}><Icon name="x" /></button>
         </div>
       </div>
 

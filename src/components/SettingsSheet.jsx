@@ -1,32 +1,37 @@
 import React, { useRef, useState } from "react";
 import { useStore, setState } from "../store.js";
 import { applyImport, exportProject } from "../importExport.js";
+import Icon from "./Icon.jsx";
+import { toast } from "../toast.js";
 
 export default function SettingsSheet({ onClose }) {
   const s = useStore();
   const [importText, setImportText] = useState("");
-  const [importMsg, setImportMsg] = useState({ msg: "", kind: "" });
+  const [importErr, setImportErr] = useState("");
   const fileRef = useRef(null);
 
   const runImport = (jsonText) => {
     try {
       const filled = applyImport(JSON.parse(jsonText));
       setImportText("");
-      setImportMsg({ msg: `Imported: ${filled.join(", ")}.`, kind: "ok" });
+      setImportErr("");
+      toast(`Imported: ${filled.join(", ")}.`);
     } catch (err) {
-      setImportMsg({
-        msg: err instanceof SyntaxError ? `Not valid JSON: ${err.message}` : err.message,
-        kind: "error",
-      });
+      setImportErr(err instanceof SyntaxError ? `Not valid JSON: ${err.message}` : err.message);
     }
   };
 
   return (
     <div className="sheet-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="sheet">
-        <div className="sheet-grip" />
-        <h3>Settings</h3>
+      <div className="sheet" role="dialog" aria-label="Settings">
+        <div className="sheet-head">
+          <h3>Settings</h3>
+          <button className="icon-btn" onClick={onClose} aria-label="Close settings">
+            <Icon name="x" />
+          </button>
+        </div>
 
+        <div className="sheet-section-title">Connection</div>
         <label className="field">
           <span className="field-label">OpenRouter API key</span>
           <input
@@ -38,6 +43,7 @@ export default function SettingsSheet({ onClose }) {
           />
         </label>
 
+        <div className="sheet-section-title">Generation</div>
         <label className="field">
           <span className="field-label">Model</span>
           <input
@@ -97,46 +103,42 @@ export default function SettingsSheet({ onClose }) {
           Auto-continue if a chapter or rewrite hits the length limit
         </label>
 
-        <div className="sheet-section">
-          <h3>Project</h3>
-          <textarea
-            style={{ fontFamily: "ui-monospace, Consolas, monospace", fontSize: "0.8rem", minHeight: "120px" }}
-            placeholder='Paste project JSON here — fills only the fields present, e.g. {"story_bible": "...", "mode": "GENERATE"}'
-            value={importText}
-            onChange={(e) => setImportText(e.target.value)}
+        <div className="sheet-section-title">Project data</div>
+        <textarea
+          style={{ fontFamily: "ui-monospace, Consolas, monospace", fontSize: "0.8rem", minHeight: "110px" }}
+          placeholder='Paste project JSON — fills only the fields present, e.g. {"story_bible": "...", "mode": "GENERATE"}'
+          value={importText}
+          onChange={(e) => setImportText(e.target.value)}
+        />
+        {importErr && <div className="status error">{importErr}</div>}
+        <div className="btn-row">
+          <button
+            className="btn-secondary"
+            onClick={() => {
+              if (!importText.trim()) return setImportErr("Nothing pasted yet.");
+              runImport(importText);
+            }}
+          >
+            Import pasted JSON
+          </button>
+          <button className="btn-secondary" onClick={() => fileRef.current?.click()}>Import file…</button>
+          <button className="btn-secondary" onClick={exportProject}>Export project</button>
+          <input
+            type="file"
+            ref={fileRef}
+            accept=".json,application/json"
+            hidden
+            onChange={async (e) => {
+              const file = e.target.files[0];
+              e.target.value = "";
+              if (file) runImport(await file.text());
+            }}
           />
-          <div className={`status ${importMsg.kind}`}>{importMsg.msg}</div>
-          <div className="btn-row">
-            <button
-              className="btn-ghost"
-              onClick={() => {
-                if (!importText.trim()) return setImportMsg({ msg: "Nothing pasted yet.", kind: "error" });
-                runImport(importText);
-              }}
-            >
-              Import pasted JSON
-            </button>
-            <button className="btn-ghost" onClick={() => fileRef.current?.click()}>Import file…</button>
-            <button className="btn-ghost" onClick={exportProject}>Export project</button>
-            <input
-              type="file"
-              ref={fileRef}
-              accept=".json,application/json"
-              hidden
-              onChange={async (e) => {
-                const file = e.target.files[0];
-                e.target.value = "";
-                if (file) runImport(await file.text());
-              }}
-            />
-          </div>
-          <span className="hint">
-            Everything is stored locally in your browser. Nothing leaves this device except the calls to OpenRouter.
-            Exports never include your API key.
-          </span>
         </div>
-
-        <button className="btn" onClick={onClose}>Done</button>
+        <span className="hint">
+          Everything is stored locally in your browser. Nothing leaves this device except the calls to OpenRouter.
+          Exports never include your API key.
+        </span>
       </div>
     </div>
   );

@@ -1,22 +1,57 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useStore } from "./store.js";
+import { onToast } from "./toast.js";
 import WritePage from "./pages/WritePage.jsx";
 import RewritePage from "./pages/RewritePage.jsx";
 import ChatPage from "./pages/ChatPage.jsx";
 import Reader from "./components/Reader.jsx";
 import SettingsSheet from "./components/SettingsSheet.jsx";
+import Icon from "./components/Icon.jsx";
 
 const NAV = [
-  { id: "write", label: "Write", ico: "✒️" },
-  { id: "rewrite", label: "Rewrite", ico: "🪄" },
-  { id: "chat", label: "Brain Dump", ico: "💬" },
+  { id: "write", label: "Write", icon: "pen" },
+  { id: "rewrite", label: "Rewrite", icon: "wand" },
+  { id: "chat", label: "Brain Dump", icon: "chat" },
 ];
+
+function NavButtons({ page, setPage }) {
+  return NAV.map((n) => (
+    <button
+      key={n.id}
+      className={`nav-btn ${page === n.id ? "active" : ""}`}
+      onClick={() => setPage(n.id)}
+      aria-current={page === n.id ? "page" : undefined}
+    >
+      <Icon name={n.icon} />
+      {n.label}
+    </button>
+  ));
+}
+
+function Toasts() {
+  const [toasts, setToasts] = useState([]);
+  useEffect(
+    () =>
+      onToast((t) => {
+        setToasts((prev) => [...prev, t]);
+        setTimeout(() => setToasts((prev) => prev.filter((x) => x.id !== t.id)), 2600);
+      }),
+    []
+  );
+  if (!toasts.length) return null;
+  return (
+    <div className="toasts" role="status" aria-live="polite">
+      {toasts.map((t) => (
+        <div key={t.id} className={`toast ${t.kind}`}>{t.msg}</div>
+      ))}
+    </div>
+  );
+}
 
 export default function App() {
   const state = useStore();
   const [page, setPage] = useState("write");
   const [settingsOpen, setSettingsOpen] = useState(false);
-  // readerItems: null = closed; otherwise [{ n?, text, label? }]
   const [readerItems, setReaderItems] = useState(null);
   const [readerStart, setReaderStart] = useState(0);
 
@@ -30,10 +65,14 @@ export default function App() {
     <>
       <header className="app-header">
         <h1 className="app-title">Chapter Engine</h1>
+        <nav className="top-tabs" aria-label="Pages">
+          <NavButtons page={page} setPage={setPage} />
+        </nav>
         <div className="header-actions">
           <button
             className="icon-btn"
             title="Read chapters"
+            aria-label="Read chapters"
             onClick={() => {
               const items = state.chapters.length
                 ? state.chapters.map((c) => ({ n: c.n, text: c.text }))
@@ -43,10 +82,15 @@ export default function App() {
               openReader(items, state.activeChapter ?? 0);
             }}
           >
-            📖
+            <Icon name="book" />
           </button>
-          <button className="icon-btn" title="Settings" onClick={() => setSettingsOpen(true)}>
-            ⚙️
+          <button
+            className="icon-btn"
+            title="Settings"
+            aria-label="Settings"
+            onClick={() => setSettingsOpen(true)}
+          >
+            <Icon name="settings" />
           </button>
         </div>
       </header>
@@ -55,19 +99,11 @@ export default function App() {
       {page === "rewrite" && <RewritePage onRead={openReader} openSettings={() => setSettingsOpen(true)} goWrite={() => setPage("write")} />}
       {page === "chat" && <ChatPage openSettings={() => setSettingsOpen(true)} goWrite={() => setPage("write")} />}
 
-      <nav className="bottom-nav">
-        {NAV.map((n) => (
-          <button
-            key={n.id}
-            className={`nav-btn ${page === n.id ? "active" : ""}`}
-            onClick={() => setPage(n.id)}
-          >
-            <span className="nav-ico">{n.ico}</span>
-            {n.label}
-          </button>
-        ))}
+      <nav className="bottom-nav" aria-label="Pages">
+        <NavButtons page={page} setPage={setPage} />
       </nav>
 
+      <Toasts />
       {settingsOpen && <SettingsSheet onClose={() => setSettingsOpen(false)} />}
       {readerItems && (
         <Reader items={readerItems} startIndex={readerStart} onClose={() => setReaderItems(null)} />
