@@ -1,78 +1,52 @@
 import React, { useState } from "react";
-import { useStore, setState, getState } from "../store.js";
-import { generateImage, imageUrlToDataUrl } from "../api.js";
+import { useStore, setState } from "../store.js";
 import Card from "./Card.jsx";
+import Icon from "./Icon.jsx";
+import ImagePromptSheet from "./ImagePromptSheet.jsx";
 import { toast } from "../toast.js";
 
-// Image generation via Replicate — scene art, covers, reference images.
-// Character portraits also have a one-tap generator on each cast card.
+// Freeform art/covers/reference images. The prompt is built from whatever
+// story context you highlight (see ImagePromptSheet); character portraits
+// already in the Bible are offered as reference images automatically.
 
 export default function ArtCard({ openSettings }) {
   const s = useStore();
-  const [prompt, setPrompt] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [image, setImage] = useState(""); // data URL of the last generation
-  const [status, setStatus] = useState({ msg: "", kind: "" });
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [lastImage, setLastImage] = useState("");
   const [portraitTarget, setPortraitTarget] = useState("");
-
-  const generate = async () => {
-    if (!getState().replicateToken) {
-      toast("No Replicate token — add one in Settings first.", "error");
-      openSettings();
-      return;
-    }
-    if (!prompt.trim()) return toast("Describe the image first.", "error");
-    setBusy(true);
-    setStatus({ msg: "Generating…", kind: "" });
-    try {
-      const url = await generateImage(prompt.trim());
-      setStatus({ msg: "Fetching image…", kind: "" });
-      const dataUrl = await imageUrlToDataUrl(url).catch(() => url); // fall back to the raw URL
-      setImage(dataUrl);
-      setStatus({ msg: "", kind: "" });
-      toast("Image ready.");
-    } catch (err) {
-      setStatus({ msg: err.message, kind: "error" });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const download = () => {
-    const a = document.createElement("a");
-    a.href = image;
-    a.download = "chapter-engine-art.jpg";
-    a.click();
-  };
 
   const setPortrait = () => {
     if (!portraitTarget) return toast("Pick a character first.", "error");
-    setState({
-      characters: s.characters.map((c) => (c.id === portraitTarget ? { ...c, image } : c)),
-    });
+    setState({ characters: s.characters.map((c) => (c.id === portraitTarget ? { ...c, image: lastImage } : c)) });
     toast("Portrait set.");
   };
 
   return (
     <Card id="art" title="Art" defaultOpen={false}>
       <span className="hint">
-        Scene art, covers, and reference images via Replicate. The image model is set in Settings.
+        Scene art, covers, and reference images. Highlight what to draw from and the AI writes the prompt —
+        it can use existing character portraits as reference.
       </span>
-      <textarea
-        placeholder="Describe the image — subject, mood, framing, style…"
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
-      />
-      <button className="btn-secondary" onClick={generate} disabled={busy}>
-        {busy ? "Generating…" : "Generate image"}
+      <button className="btn-secondary" onClick={() => setSheetOpen(true)}>
+        <Icon name="image" />
+        Generate image
       </button>
-      <div className={`status ${status.kind}`}>{status.msg}</div>
 
-      {image && (
+      {lastImage && (
         <>
-          <img className="art-result" src={image} alt="Generated art" />
+          <img className="art-result" src={lastImage} alt="Generated art" />
           <div className="btn-row">
-            <button className="btn-secondary" onClick={download}>Download</button>
+            <button
+              className="btn-secondary"
+              onClick={() => {
+                const a = document.createElement("a");
+                a.href = lastImage;
+                a.download = "chapter-engine-art.jpg";
+                a.click();
+              }}
+            >
+              Download
+            </button>
             {s.characters.length > 0 && (
               <>
                 <select
@@ -91,6 +65,15 @@ export default function ArtCard({ openSettings }) {
             )}
           </div>
         </>
+      )}
+
+      {sheetOpen && (
+        <ImagePromptSheet
+          title="Generate image"
+          onClose={() => setSheetOpen(false)}
+          onSave={(dataUrl) => setLastImage(dataUrl)}
+          openSettings={openSettings}
+        />
       )}
     </Card>
   );

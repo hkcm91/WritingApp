@@ -110,17 +110,67 @@ async function replicateRequest(model, input, token) {
   });
 }
 
-/** Generate an image; returns a URL. Uses the configured Replicate model. */
-export async function generateImage(prompt) {
+const schemaCache = new Map();
+
+// Fetch the model's input schema so we know whether it accepts a safety-checker
+// flag and/or a reference-image field, instead of guessing blindly.
+async function getModelInputSchema(model, token) {
+  if (schemaCache.has(model)) return schemaCache.get(model);
+  try {
+    const res = await fetch(`${REPLICATE_BASE}/models/${model}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    const props = data?.latest_version?.openapi_schema?.components?.schemas?.Input?.properties || null;
+    schemaCache.set(model, props);
+    return props;
+  } catch {
+    schemaCache.set(model, null);
+    return null;
+  }
+}
+
+const IMAGE_FIELD_CANDIDATES = ["image_input", "input_image", "image", "images", "reference_images", "control_image"];
+
+function pickImageField(props) {
+  if (!props) return null;
+  for (const name of IMAGE_FIELD_CANDIDATES) {
+    if (props[name]) return { name, isArray: props[name].type === "array" };
+  }
+  return null;
+}
+
+/**
+ * Generate an image from a prompt, optionally with character-portrait
+ * reference images (data URLs). Returns { url, usedReference } — Replicate
+ * models vary wildly in schema, so reference images are only attached when
+ * the model's own schema exposes a matching field; otherwise it falls back
+ * to a plain text-to-image call and reports that no reference was used.
+ */
+export async function generateImage(prompt, referenceImages = []) {
   const { replicateToken, imageModel } = getState();
   if (!replicateToken) throw new Error("No Replicate API token — add one in Settings.");
   if (!imageModel.includes("/")) throw new Error("Image model must be owner/name, e.g. black-forest-labs/flux-schnell.");
 
-  // Try with the safety checker disabled (supported by most SD/Flux models);
-  // if the model's schema rejects the extra input, retry with prompt only.
-  let res = await replicateRequest(imageModel, { prompt, disable_safety_checker: true }, replicateToken);
+  const props = await getModelInputSchema(imageModel, replicateToken);
+  const input = { prompt };
+  if (props?.disable_safety_checker) input.disable_safety_checker = true;
+
+  let usedReference = false;
+  if (referenceImages.length) {
+    const field = pickImageField(props);
+    if (field) {
+      input[field.name] = field.isArray ? referenceImages : referenceImages[0];
+      usedReference = true;
+    }
+  }
+
+  let res = await replicateRequest(imageModel, input, replicateToken);
   if (res.status === 422) {
+    // Schema guess was wrong somewhere — retry with prompt only.
     res = await replicateRequest(imageModel, { prompt }, replicateToken);
+    usedReference = false;
   }
   if (!res.ok) {
     let detail = "";
@@ -142,7 +192,7 @@ export async function generateImage(prompt) {
   }
   const url = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
   if (!url) throw new Error("Model returned no image.");
-  return url;
+  return { url, usedReference };
 }
 
 /** Fetch a generated image and downscale to a data URL for local storage. */

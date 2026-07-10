@@ -51,7 +51,7 @@ export default function StoryPanel() {
     }
     setGeneratingId(c.id);
     try {
-      const url = await generateImage(
+      const { url } = await generateImage(
         `Character portrait, waist-up: ${c.name}. ${c.description}. Detailed, cinematic lighting, painterly.`
       );
       const image = await imageUrlToDataUrl(url).catch(() => url);

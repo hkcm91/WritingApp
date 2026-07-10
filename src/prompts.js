@@ -233,6 +233,29 @@ export function parseScenes(raw) {
     .filter((sc) => sc.outline);
 }
 
+// --- Image prompt drafting ----------------------------------------------------
+
+export const IMAGE_PROMPT_SYSTEM = `You are a visual-prompt writer for an AI image-generation model illustrating
+scenes from adult fiction. Any characters described are adults (18+).
+
+Convert the story context you're given into ONE vivid, concrete image prompt:
+subject(s) and their physical appearance/clothing, pose or action, setting,
+time of day, mood and lighting, and an art style (infer one that fits the
+story's tone if none is specified, e.g. "moody digital painting" or
+"soft cinematic photography"). 2-4 dense sentences of visual description only
+— no dialogue, no plot explanation, no meta-commentary about the task.
+
+If character descriptions are provided, depict them consistently with those
+details. If the scene is intimate, favor mood, framing, and suggestion over
+graphic anatomical description — image models and hosting platforms are
+typically far more restrictive about explicit sexual imagery than the text
+model used to write the story, regardless of settings. Return ONLY the
+image prompt text.`;
+
+export function buildImagePromptMessage(contextText) {
+  return `STORY CONTEXT TO ILLUSTRATE:\n${contextText}\n\nWrite the image-generation prompt now.`;
+}
+
 // --- Quick prompt (smart fill) ------------------------------------------------
 
 export const SMART_FILL_SYSTEM = `You are the intake organizer for an adult-fiction writing app. All characters

@@ -4,6 +4,7 @@ import { streamLongform, completeOnce } from "../api.js";
 import { SYSTEM_PROMPT, buildSplitScenesMessage, buildSceneMessage, parseScenes } from "../prompts.js";
 import Card from "./Card.jsx";
 import Icon from "./Icon.jsx";
+import ImagePromptSheet from "./ImagePromptSheet.jsx";
 import { toast } from "../toast.js";
 
 // Scene-by-scene chapter building. Scenes are a workspace for the chapter in
@@ -15,6 +16,8 @@ const assembleDraft = (scenes) => scenes.map((sc) => sc.text.trim()).filter(Bool
 export default function ScenesCard({ openSettings }) {
   const s = useStore();
   const [busyId, setBusyId] = useState(null); // scene id being written, or "split"
+  const [artSceneId, setArtSceneId] = useState(null);
+  const artScene = s.scenes.find((x) => x.id === artSceneId);
 
   const update = (id, patch) => {
     setState({ scenes: s.scenes.map((sc) => (sc.id === id ? { ...sc, ...patch } : sc)) });
@@ -39,7 +42,7 @@ export default function ScenesCard({ openSettings }) {
         temperature: 0.6,
         messages: [{ role: "user", content: buildSplitScenesMessage(getState()) }],
       });
-      const scenes = parseScenes(raw).map((sc) => ({ id: uid("sc"), ...sc, text: "" }));
+      const scenes = parseScenes(raw).map((sc) => ({ id: uid("sc"), ...sc, text: "", image: "" }));
       if (!scenes.length) throw new Error("No scenes came back.");
       setState({ scenes });
       toast(`Split into ${scenes.length} scenes.`);
@@ -92,7 +95,7 @@ export default function ScenesCard({ openSettings }) {
         </button>
         <button
           className="btn-secondary"
-          onClick={() => setState({ scenes: [...s.scenes, { id: uid("sc"), title: "", outline: "", text: "" }] })}
+          onClick={() => setState({ scenes: [...s.scenes, { id: uid("sc"), title: "", outline: "", text: "", image: "" }] })}
         >
           <Icon name="plus" />
           Add scene
@@ -120,6 +123,14 @@ export default function ScenesCard({ openSettings }) {
               {busyId === sc.id ? "writing…" : sc.text.trim() ? `${sc.text.trim().split(/\s+/).length.toLocaleString()} words` : "unwritten"}
             </span>
             <button
+              className="icon-btn"
+              title="Generate scene art"
+              aria-label={`Generate art for scene ${i + 1}`}
+              onClick={() => setArtSceneId(sc.id)}
+            >
+              <Icon name="image" size={15} />
+            </button>
+            <button
               className="char-del"
               title="Remove scene"
               aria-label={`Remove scene ${i + 1}`}
@@ -128,6 +139,7 @@ export default function ScenesCard({ openSettings }) {
               <Icon name="trash" />
             </button>
           </div>
+          {sc.image && <img className="scene-thumb" src={sc.image} alt={`${sc.title || "scene"} art`} />}
           <textarea
             placeholder="What happens in this scene…"
             value={sc.outline}
@@ -139,6 +151,16 @@ export default function ScenesCard({ openSettings }) {
           </button>
         </div>
       ))}
+
+      {artScene && (
+        <ImagePromptSheet
+          title={`Scene art — ${artScene.title || "untitled scene"}`}
+          forcedContext={{ label: "This scene", text: `${artScene.title}\n${artScene.outline}\n${artScene.text}`.trim() }}
+          onClose={() => setArtSceneId(null)}
+          onSave={(dataUrl) => update(artScene.id, { image: dataUrl })}
+          openSettings={openSettings}
+        />
+      )}
     </Card>
   );
 }
