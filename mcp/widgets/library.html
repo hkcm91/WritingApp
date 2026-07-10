@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Library</title>
+<style>
+  :root { --bg:#121316; --surface:#1a1b20; --edge:#2c2d35; --text:#e9e8ec; --dim:#9a99a3; --accent:#eb6f92; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,"Segoe UI",system-ui,sans-serif; padding:14px; }
+  h1 { font-family:Georgia,serif; font-size:1.1rem; margin:0 0 12px; }
+  .book { display:flex; gap:10px; align-items:center; background:var(--surface); border:1px solid var(--edge); border-radius:12px; padding:10px 12px; margin-bottom:8px; }
+  .book.current { border-color:var(--accent); }
+  .spine { width:8px; align-self:stretch; border-radius:3px; background:linear-gradient(var(--accent),#b04d6a); }
+  .title { font-family:Georgia,serif; font-weight:700; font-size:1rem; }
+  .meta { font-size:.75rem; color:var(--dim); }
+  .badge { margin-left:auto; font-size:.65rem; color:var(--accent); border:1px solid var(--accent); border-radius:20px; padding:1px 8px; }
+  .err { color:#ef8354; font-size:.85rem; }
+  .empty { color:var(--dim); font-size:.85rem; }
+</style>
+</head>
+<body>
+<h1>Library</h1>
+<div id="list" class="empty">Loading…</div>
+<script src="_shared.js"></script>
+<script>
+(async () => {
+  const el = document.getElementById("list");
+  const bookCard = (b) => {
+    const card = document.createElement("div");
+    card.className = "book" + (b.current ? " current" : "");
+    const spine = document.createElement("div"); spine.className = "spine"; card.appendChild(spine);
+    const info = document.createElement("div");
+    const t = document.createElement("div"); t.className = "title"; t.textContent = b.title; info.appendChild(t);
+    const m = document.createElement("div"); m.className = "meta";
+    m.textContent = `${b.chapters} chapter${b.chapters===1?"":"s"} · ${b.words.toLocaleString()} words · ${b.characters} cast`;
+    info.appendChild(m);
+    card.appendChild(info);
+    if (b.current) { const badge = document.createElement("span"); badge.className = "badge"; badge.textContent = "Open"; card.appendChild(badge); }
+    return card;
+  };
+  try {
+    const books = await CE.get("/books");
+    if (!books.length) { el.textContent = "No books yet — sync from the Chapter Engine app."; return; }
+    el.className = "";
+    el.replaceChildren(...books.map(bookCard));
+  } catch (e) {
+    el.className = "err";
+    el.textContent = "Can't reach the companion server. Is it running, and synced from the app?";
+  }
+})();
+</script>
+</body>
+</html>

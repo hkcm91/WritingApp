@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 import { useStore, setState } from "../store.js";
 import { applyImport, exportProject } from "../importExport.js";
+import { pushLibrary, pullLibrary } from "../sync.js";
 import Icon from "./Icon.jsx";
 import { toast } from "../toast.js";
 
@@ -8,6 +9,7 @@ export default function SettingsSheet({ onClose }) {
   const s = useStore();
   const [importText, setImportText] = useState("");
   const [importErr, setImportErr] = useState("");
+  const [syncing, setSyncing] = useState(false);
   const fileRef = useRef(null);
 
   const runImport = (jsonText) => {
@@ -167,6 +169,48 @@ export default function SettingsSheet({ onClose }) {
           Any Replicate model that takes a "prompt" input works. The safety checker is disabled
           when the model supports it; pick a model whose license fits your content.
         </span>
+
+        <div className="sheet-section-title">Widget / MCP server</div>
+        <span className="hint">
+          Push your library to the companion server so StickerNest widgets and AI agents (via MCP) can
+          read it. Your API keys stay in the browser and are never synced.
+        </span>
+        <label className="field">
+          <span className="field-label">Server URL</span>
+          <input
+            type="text"
+            value={s.serverUrl}
+            onChange={(e) => setState({ serverUrl: e.target.value.trim() })}
+            placeholder="http://localhost:8787"
+          />
+        </label>
+        <div className="btn-row">
+          <button
+            className="btn-secondary"
+            disabled={syncing}
+            onClick={async () => {
+              setSyncing(true);
+              try { const r = await pushLibrary(); toast(`Pushed ${r.books} book${r.books === 1 ? "" : "s"} to the server.`); }
+              catch (e) { toast(`Push failed: ${e.message}`, "error"); }
+              finally { setSyncing(false); }
+            }}
+          >
+            Push to server
+          </button>
+          <button
+            className="btn-secondary"
+            disabled={syncing}
+            onClick={async () => {
+              if (!confirm("Pull the server's library into the app? This replaces your local books.")) return;
+              setSyncing(true);
+              try { await pullLibrary(); toast("Pulled library from the server."); }
+              catch (e) { toast(`Pull failed: ${e.message}`, "error"); }
+              finally { setSyncing(false); }
+            }}
+          >
+            Pull from server
+          </button>
+        </div>
 
         <div className="sheet-section-title">Project data</div>
         <textarea

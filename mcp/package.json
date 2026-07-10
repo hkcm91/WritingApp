@@ -1,0 +1,18 @@
+{
+  "name": "chapter-engine-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "MCP + REST companion server exposing Chapter Engine's library to agents and StickerNest widgets",
+  "bin": { "chapter-engine-mcp": "src/stdio.js" },
+  "scripts": {
+    "start": "node src/http.js",
+    "stdio": "node src/stdio.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "zod": "^3.24.1"
+  }
+}

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Manuscript</title>
+<style>
+  :root { --paper:#f4ecd8; --ink:#3a3128; --dim:#7a6f5c; --edge:#e0d5bd; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:Georgia,"Iowan Old Style",serif; }
+  header { display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--edge); font-family:-apple-system,system-ui,sans-serif; }
+  header select { font-family:inherit; background:transparent; border:1px solid var(--edge); border-radius:8px; padding:4px 8px; color:var(--ink); }
+  .words { margin-left:auto; font-size:.75rem; color:var(--dim); }
+  main { padding:24px 18px 60px; max-width:34em; margin:0 auto; line-height:1.7; }
+  h2 { text-align:center; font-weight:normal; text-transform:uppercase; letter-spacing:.12em; font-size:1rem; color:var(--dim); margin:2rem 0 1.4rem; }
+  p { margin:0; text-align:justify; text-indent:1.4em; }
+  p.first { text-indent:0; }
+  p.first::first-letter { font-size:3em; line-height:.8; float:left; padding:.05em .08em 0 0; font-weight:600; }
+  .msg { padding:24px 18px; color:var(--dim); font-family:-apple-system,system-ui,sans-serif; }
+</style>
+</head>
+<body>
+<header>
+  <select id="picker" aria-label="Book"></select>
+  <span id="words" class="words"></span>
+</header>
+<main id="doc"><div class="msg">Loading…</div></main>
+<script src="_shared.js"></script>
+<script>
+(async () => {
+  const picker = document.getElementById("picker");
+  const doc = document.getElementById("doc");
+  const wordsEl = document.getElementById("words");
+
+  const render = async (id) => {
+    doc.replaceChildren(Object.assign(document.createElement("div"), { className: "msg", textContent: "Loading…" }));
+    try {
+      const m = await CE.get(`/books/${id}/manuscript`);
+      wordsEl.textContent = `${m.words.toLocaleString()} words`;
+      const nodes = [];
+      // Split assembled text into "Chapter N" sections and paragraphs.
+      m.text.split(/\n{3,}/).forEach((section) => {
+        const lines = section.split(/\n{2,}/).map((s) => s.trim()).filter(Boolean);
+        if (lines[0] && /^Chapter\s+\d+$/i.test(lines[0])) {
+          const h = document.createElement("h2"); h.textContent = lines.shift(); nodes.push(h);
+        }
+        lines.forEach((para, i) => {
+          const p = document.createElement("p");
+          if (i === 0) p.className = "first";
+          p.textContent = para;
+          nodes.push(p);
+        });
+      });
+      doc.replaceChildren(...(nodes.length ? nodes : [Object.assign(document.createElement("div"), { className: "msg", textContent: "This book has no chapters yet." })]));
+    } catch (e) {
+      doc.replaceChildren(Object.assign(document.createElement("div"), { className: "msg", textContent: "Can't load the manuscript." }));
+    }
+  };
+
+  try {
+    const books = await CE.get("/books");
+    if (!books.length) { doc.replaceChildren(Object.assign(document.createElement("div"), { className: "msg", textContent: "No books yet — sync from the app." })); return; }
+    picker.replaceChildren(...books.map((b) => Object.assign(document.createElement("option"), { value: b.id, textContent: b.title, selected: b.current })));
+    picker.addEventListener("change", () => render(picker.value));
+    render((books.find((b) => b.current) || books[0]).id);
+  } catch (e) {
+    doc.replaceChildren(Object.assign(document.createElement("div"), { className: "msg", textContent: "Can't reach the companion server." }));
+  }
+})();
+</script>
+</body>
+</html>

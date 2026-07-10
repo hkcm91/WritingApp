@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Writing Dashboard</title>
+<style>
+  :root { --bg:#121316; --surface:#1a1b20; --edge:#2c2d35; --text:#e9e8ec; --dim:#9a99a3; --accent:#eb6f92; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,"Segoe UI",system-ui,sans-serif; padding:14px; }
+  h1 { font-family:Georgia,serif; font-size:1.1rem; margin:0 0 12px; }
+  .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px; }
+  .stat { background:var(--surface); border:1px solid var(--edge); border-radius:12px; padding:10px; text-align:center; }
+  .stat .n { font-family:Georgia,serif; font-size:1.5rem; font-weight:700; color:var(--accent); }
+  .stat .l { font-size:.66rem; color:var(--dim); text-transform:uppercase; letter-spacing:.06em; }
+  .bar-row { margin-bottom:8px; }
+  .bar-head { display:flex; justify-content:space-between; font-size:.78rem; margin-bottom:3px; }
+  .bar-head .w { color:var(--dim); }
+  .bar { height:8px; background:var(--surface); border:1px solid var(--edge); border-radius:6px; overflow:hidden; }
+  .bar > span { display:block; height:100%; background:linear-gradient(90deg,var(--accent),#b04d6a); }
+  .msg { color:var(--dim); font-size:.85rem; }
+</style>
+</head>
+<body>
+<h1 id="title">Writing Dashboard</h1>
+<div id="stats" class="stats"></div>
+<div id="bars"></div>
+<div id="msg" class="msg">Loading…</div>
+<script src="_shared.js"></script>
+<script>
+(async () => {
+  const statEl = (n, l) => {
+    const d = document.createElement("div"); d.className = "stat";
+    const nn = document.createElement("div"); nn.className = "n"; nn.textContent = n;
+    const ll = document.createElement("div"); ll.className = "l"; ll.textContent = l;
+    d.append(nn, ll); return d;
+  };
+  try {
+    const books = await CE.get("/books");
+    document.getElementById("msg").textContent = "";
+    if (!books.length) { document.getElementById("msg").textContent = "No books yet — sync from the app."; return; }
+
+    const totalWords = books.reduce((n, b) => n + b.words, 0);
+    const totalChapters = books.reduce((n, b) => n + b.chapters, 0);
+    document.getElementById("stats").replaceChildren(
+      statEl(books.length, "Books"),
+      statEl(totalChapters, "Chapters"),
+      statEl(totalWords.toLocaleString(), "Words"),
+    );
+
+    const max = Math.max(1, ...books.map((b) => b.words));
+    document.getElementById("bars").replaceChildren(...books.map((b) => {
+      const row = document.createElement("div"); row.className = "bar-row";
+      const head = document.createElement("div"); head.className = "bar-head";
+      const name = document.createElement("span"); name.textContent = b.title;
+      const w = document.createElement("span"); w.className = "w"; w.textContent = `${b.words.toLocaleString()} w`;
+      head.append(name, w);
+      const bar = document.createElement("div"); bar.className = "bar";
+      const fill = document.createElement("span"); fill.style.width = `${Math.round((b.words / max) * 100)}%`;
+      bar.appendChild(fill);
+      row.append(head, bar);
+      return row;
+    }));
+  } catch (e) {
+    document.getElementById("msg").textContent = "Can't reach the companion server.";
+  }
+})();
+</script>
+</body>
+</html>

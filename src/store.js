@@ -21,6 +21,7 @@ const GLOBAL_DEFAULTS = {
   readerTheme: "sepia",
   readerFontSize: 20,
   uiTheme: "rose", // rose | slate | evergreen | graphite
+  serverUrl: "http://localhost:8787", // MCP / widget companion server
   cardOpen: {}, // persisted per-section collapse state, keyed by card id
 };
 
@@ -200,4 +201,35 @@ export function useStore() {
 
 export function nextChapterNumber(s = getState()) {
   return s.chapters.reduce((max, ch) => Math.max(max, ch.n), 0) + 1;
+}
+
+// --- Library sync (to the MCP / widget companion server) ---------------------
+
+// The full raw library for pushing to the companion server. Excludes secrets
+// (API keys/tokens) — those stay in the browser and the server uses its own.
+export function getFullLibrary() {
+  const { apiKey, replicateToken, ...settings } = internal.global;
+  return {
+    settings: {
+      model: settings.model,
+      summaryModel: settings.summaryModel,
+      temperature: settings.temperature,
+      topP: settings.topP,
+      maxTokens: settings.maxTokens,
+    },
+    books: internal.books,
+    currentBookId: internal.currentBookId,
+  };
+}
+
+// Replace books from a pulled library (server → app). Keeps local settings.
+export function replaceLibrary({ books, currentBookId }) {
+  if (!books || !Object.keys(books).length) return;
+  internal.books = Object.fromEntries(
+    Object.entries(books).map(([id, b]) => [id, withBookDefaults(b)])
+  );
+  internal.currentBookId = currentBookId && internal.books[currentBookId]
+    ? currentBookId
+    : Object.keys(internal.books)[0];
+  emit();
 }
