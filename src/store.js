@@ -19,6 +19,7 @@ const GLOBAL_DEFAULTS = {
   imageModel: "black-forest-labs/flux-schnell",
   readerTheme: "sepia",
   readerFontSize: 20,
+  uiTheme: "rose", // rose | slate | evergreen | graphite
   cardOpen: {}, // persisted per-section collapse state, keyed by card id
 };
 

@@ -53,6 +53,10 @@ function Toasts() {
 export default function App() {
   const state = useStore();
   const [page, setPage] = useState("write");
+
+  useEffect(() => {
+    document.documentElement.dataset.uiTheme = state.uiTheme;
+  }, [state.uiTheme]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [readerItems, setReaderItems] = useState(null);
   const [readerStart, setReaderStart] = useState(0);

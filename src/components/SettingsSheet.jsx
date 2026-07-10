@@ -31,6 +31,23 @@ export default function SettingsSheet({ onClose }) {
           </button>
         </div>
 
+        <div className="sheet-section-title">Appearance</div>
+        <div className="segmented" role="group" aria-label="Color theme">
+          {[
+            ["rose", "Rose"],
+            ["slate", "Slate"],
+            ["evergreen", "Green"],
+            ["graphite", "Mono"],
+          ].map(([id, label]) => (
+            <button key={id} aria-pressed={s.uiTheme === id} onClick={() => setState({ uiTheme: id })}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <span className="hint">
+          Ink & Rose · Slate (steel blue) · Evergreen (reading-room sage) · Graphite (pure monochrome).
+        </span>
+
         <div className="sheet-section-title">Connection</div>
         <label className="field">
           <span className="field-label">OpenRouter API key</span>

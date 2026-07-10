@@ -3,19 +3,19 @@
    ========================================================================== */
 
 :root {
-  /* Color — warm ink & brass; a writing desk, not a tech demo */
-  --bg: #121110;
-  --surface: #1a1816;
-  --surface-2: #23201c;
-  --paper: #1c1a16;          /* manuscript surface — slightly warmer than cards */
-  --edge: #2e2b25;
-  --text: #eae6dd;
-  --dim: #a39b8b;
-  --accent: #d2a95f;
-  --accent-strong: #d2a95f;
-  --accent-press: #c19747;
-  --on-accent: #171310;
-  --danger: #e2725b;
+  /* Ink & Rose (default) — neutral charcoal, dusty-rose accent (Rosé Pine "love") */
+  --bg: #121316;
+  --surface: #1a1b20;
+  --surface-2: #232429;
+  --paper: #1b1c21;          /* manuscript surface — one step off the cards */
+  --edge: #2c2d35;
+  --text: #e9e8ec;
+  --dim: #9a99a3;
+  --accent: #eb6f92;
+  --accent-strong: #eb6f92;
+  --accent-press: #d95f83;
+  --on-accent: #2a121b;
+  --danger: #ef8354;
   --ok: #9db787;
 
   /* Type scale */
@@ -42,6 +42,51 @@
   --shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
 
   font-size: 16px;
+}
+
+/* Slate — cool graphite + steel-blue frost (Nord-informed, iA-style pro) */
+:root[data-ui-theme="slate"] {
+  --bg: #12151a;
+  --surface: #181c23;
+  --surface-2: #21262f;
+  --paper: #1a1e25;
+  --edge: #2e3440;
+  --text: #e5e9f0;
+  --dim: #94a0b3;
+  --accent: #88c0d0;
+  --accent-strong: #88c0d0;
+  --accent-press: #79b1c2;
+  --on-accent: #0f1a1e;
+}
+
+/* Evergreen — reading-room green, banker's-lamp sage accent */
+:root[data-ui-theme="evergreen"] {
+  --bg: #101312;
+  --surface: #171b19;
+  --surface-2: #202622;
+  --paper: #191d1a;
+  --edge: #2a322c;
+  --text: #e6e9e4;
+  --dim: #98a396;
+  --accent: #a7c080;
+  --accent-strong: #a7c080;
+  --accent-press: #97b070;
+  --on-accent: #16200f;
+}
+
+/* Graphite — pure monochrome, iA Writer minimalism; the accent is light itself */
+:root[data-ui-theme="graphite"] {
+  --bg: #111112;
+  --surface: #19191b;
+  --surface-2: #222225;
+  --paper: #1b1b1d;
+  --edge: #2c2c30;
+  --text: #e9e9ea;
+  --dim: #9b9b9f;
+  --accent: #e4e4e6;
+  --accent-strong: #e4e4e6;
+  --accent-press: #d2d2d5;
+  --on-accent: #161617;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
