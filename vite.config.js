@@ -13,6 +13,11 @@ const replicateProxy = {
 };
 
 export default defineConfig({
+  // GitHub Pages project sites are served from a repository subpath
+  // (for example, /WritingApp/). Relative asset URLs keep the built app
+  // portable so the JS/CSS load correctly from that subpath instead of
+  // from the domain root.
+  base: "./",
   plugins: [react()],
   server: {
     port: 5174,
