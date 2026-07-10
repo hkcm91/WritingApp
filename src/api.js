@@ -96,7 +96,10 @@ export async function streamLongform({ system, userMessage, temperature, onToken
 
 // --- Replicate image generation ----------------------------------------------
 
-const REPLICATE_BASE = "https://api.replicate.com/v1";
+// Same-origin proxy — see vite.config.js (dev/preview) and
+// api/replicate/[...path].js (Vercel deploy). Replicate doesn't allow
+// direct browser calls, so nothing here talks to api.replicate.com directly.
+const REPLICATE_BASE = "/api/replicate";
 
 async function replicateRequest(model, input, token) {
   return fetch(`${REPLICATE_BASE}/models/${model}/predictions`, {
