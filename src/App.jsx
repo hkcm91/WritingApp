@@ -4,11 +4,13 @@ import { onToast } from "./toast.js";
 import WritePage from "./pages/WritePage.jsx";
 import RewritePage from "./pages/RewritePage.jsx";
 import ChatPage from "./pages/ChatPage.jsx";
+import LibraryPage from "./pages/LibraryPage.jsx";
 import Reader from "./components/Reader.jsx";
 import SettingsSheet from "./components/SettingsSheet.jsx";
 import Icon from "./components/Icon.jsx";
 
 const NAV = [
+  { id: "library", label: "Library", icon: "library" },
   { id: "write", label: "Write", icon: "pen" },
   { id: "rewrite", label: "Rewrite", icon: "wand" },
   { id: "chat", label: "Brain Dump", icon: "chat" },
@@ -64,7 +66,9 @@ export default function App() {
   return (
     <>
       <header className="app-header">
-        <h1 className="app-title">Chapter Engine</h1>
+        <button className="app-title" title="Open library" onClick={() => setPage("library")}>
+          {state.title || "Chapter Engine"}
+        </button>
         <nav className="top-tabs" aria-label="Pages">
           <NavButtons page={page} setPage={setPage} />
         </nav>
@@ -95,6 +99,7 @@ export default function App() {
         </div>
       </header>
 
+      {page === "library" && <LibraryPage goWrite={() => setPage("write")} />}
       {page === "write" && <WritePage onRead={openReader} openSettings={() => setSettingsOpen(true)} />}
       {page === "rewrite" && <RewritePage onRead={openReader} openSettings={() => setSettingsOpen(true)} goWrite={() => setPage("write")} />}
       {page === "chat" && <ChatPage openSettings={() => setSettingsOpen(true)} goWrite={() => setPage("write")} />}

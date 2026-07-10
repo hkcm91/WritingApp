@@ -103,6 +103,36 @@ export default function SettingsSheet({ onClose }) {
           Auto-continue if a chapter or rewrite hits the length limit
         </label>
 
+        <div className="sheet-section-title">Images</div>
+        <label className="field">
+          <span className="field-label">Replicate API token (for portraits & scene art)</span>
+          <input
+            type="password"
+            placeholder="r8_…"
+            autoComplete="off"
+            value={s.replicateToken}
+            onChange={(e) => setState({ replicateToken: e.target.value.trim() })}
+          />
+        </label>
+        <label className="field">
+          <span className="field-label">Image model (owner/name on Replicate)</span>
+          <input
+            type="text"
+            list="image-model-options"
+            value={s.imageModel}
+            onChange={(e) => setState({ imageModel: e.target.value.trim() || "black-forest-labs/flux-schnell" })}
+          />
+        </label>
+        <datalist id="image-model-options">
+          <option value="black-forest-labs/flux-schnell">Flux Schnell (fast & cheap)</option>
+          <option value="black-forest-labs/flux-dev">Flux Dev (higher quality)</option>
+          <option value="stability-ai/sdxl">SDXL</option>
+        </datalist>
+        <span className="hint">
+          Any Replicate model that takes a "prompt" input works. The safety checker is disabled
+          when the model supports it; pick a model whose license fits your content.
+        </span>
+
         <div className="sheet-section-title">Project data</div>
         <textarea
           style={{ fontFamily: "ui-monospace, Consolas, monospace", fontSize: "0.8rem", minHeight: "110px" }}

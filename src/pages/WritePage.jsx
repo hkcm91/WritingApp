@@ -8,6 +8,9 @@ import {
 import StoryPanel from "../components/StoryPanel.jsx";
 import Card from "../components/Card.jsx";
 import Icon from "../components/Icon.jsx";
+import QuickPrompt from "../components/QuickPrompt.jsx";
+import ScenesCard from "../components/ScenesCard.jsx";
+import ArtCard from "../components/ArtCard.jsx";
 import { toast } from "../toast.js";
 
 const wordCount = (t) => t.trim().split(/\s+/).filter(Boolean).length;
@@ -165,9 +168,10 @@ export default function WritePage({ onRead, openSettings }) {
   return (
     <div className="page write-layout">
       <div className="write-side">
+        <QuickPrompt openSettings={openSettings} />
         <StoryPanel />
 
-        <Card title="Synopsis so far" defaultOpen={false}>
+        <Card id="synopsis" title="Synopsis so far" defaultOpen={false}>
           <span className="hint">Auto-appends after each chapter — editable.</span>
           <textarea
             className="prose"
@@ -177,7 +181,7 @@ export default function WritePage({ onRead, openSettings }) {
           />
         </Card>
 
-        <Card title="Next chapter">
+        <Card id="nextChapter" title="Next chapter">
           <div className="segmented" role="group" aria-label="Mode">
             {["GENERATE", "REVISE"].map((m) => (
               <button key={m} aria-pressed={s.mode === m} onClick={() => setState({ mode: m })}>
@@ -207,7 +211,7 @@ export default function WritePage({ onRead, openSettings }) {
             <span className="field-label">Where next?</span>
             <span className="spacer" />
             <button className="btn-secondary" onClick={suggest} disabled={suggesting || busy}>
-              <Icon name="sparkles" />
+              <Icon name="list" />
               {suggesting ? "Thinking…" : "Suggest chapters"}
             </button>
           </div>
@@ -227,6 +231,9 @@ export default function WritePage({ onRead, openSettings }) {
             </div>
           ))}
         </Card>
+
+        <ScenesCard openSettings={openSettings} />
+        <ArtCard openSettings={openSettings} />
 
         <div className="cta-bar">
           <button className="btn" onClick={generate} disabled={busy}>
@@ -290,7 +297,7 @@ export default function WritePage({ onRead, openSettings }) {
           />
         </section>
 
-        <Card title="Chapters" badge={s.chapters.length || null}>
+        <Card id="chapters" title="Chapters" badge={s.chapters.length || null}>
           {!s.chapters.length && <span className="hint">Saved chapters land here — tap one to reopen it.</span>}
           <div className="chapter-list">
             {s.chapters.map((c, i) => (

@@ -4,6 +4,7 @@ import { streamCompletion } from "../api.js";
 import { CHAT_SYSTEM_PROMPT, CHAT_GREETING, extractProjectJson } from "../prompts.js";
 import { applyImport } from "../importExport.js";
 import Icon from "../components/Icon.jsx";
+import useDictation from "../hooks/useDictation.js";
 import { toast } from "../toast.js";
 
 export default function ChatPage({ openSettings, goWrite }) {
@@ -12,14 +13,13 @@ export default function ChatPage({ openSettings, goWrite }) {
   const [busy, setBusy] = useState(false);
   const [live, setLive] = useState(""); // streaming assistant text
   const [status, setStatus] = useState({ msg: "", kind: "" });
-  const [dictating, setDictating] = useState(false);
-  const [micSupported, setMicSupported] = useState(true);
   const logRef = useRef(null);
-  const recRef = useRef(null);
-  const dictatingRef = useRef(false);
-  const committedRef = useRef("");
+  const inputRef = useRef("");
+  inputRef.current = input;
 
   const say = (msg, kind = "") => setStatus({ msg, kind });
+
+  const dictation = useDictation(() => inputRef.current, setInput, say);
 
   const messages = s.chatMessages.length
     ? s.chatMessages
@@ -28,55 +28,6 @@ export default function ChatPage({ openSettings, goWrite }) {
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
   }, [messages.length, live]);
-
-  // --- Speech to text (Web Speech API) --------------------------------------
-  useEffect(() => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { setMicSupported(false); return; }
-    const rec = new SR();
-    rec.continuous = true;
-    rec.interimResults = true;
-    rec.lang = "en-US";
-    rec.addEventListener("result", (e) => {
-      let finalText = "";
-      let interim = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const chunk = e.results[i][0].transcript;
-        if (e.results[i].isFinal) finalText += chunk + " ";
-        else interim += chunk;
-      }
-      if (finalText) committedRef.current += finalText;
-      setInput(committedRef.current + interim);
-    });
-    rec.addEventListener("error", (e) => {
-      say(e.error === "not-allowed"
-        ? "Microphone permission denied — allow it in the browser to dictate."
-        : `Dictation error: ${e.error}`, "error");
-      dictatingRef.current = false;
-      setDictating(false);
-    });
-    rec.addEventListener("end", () => {
-      if (dictatingRef.current) { try { rec.start(); } catch { /* already running */ } }
-    });
-    recRef.current = rec;
-    return () => { dictatingRef.current = false; try { rec.stop(); } catch {} };
-  }, []);
-
-  const toggleMic = () => {
-    const rec = recRef.current;
-    if (!rec) return;
-    if (dictatingRef.current) {
-      dictatingRef.current = false;
-      setDictating(false);
-      try { rec.stop(); } catch {}
-    } else {
-      committedRef.current = input && !/\s$/.test(input) ? input + " " : input;
-      dictatingRef.current = true;
-      setDictating(true);
-      say("Listening… speak, then tap the mic again to stop.");
-      try { rec.start(); } catch {}
-    }
-  };
 
   // --- Sending ----------------------------------------------------------------
   const send = async () => {
@@ -87,7 +38,7 @@ export default function ChatPage({ openSettings, goWrite }) {
     }
     const userText = input.trim();
     if (!userText || busy) return;
-    if (dictatingRef.current) toggleMic();
+    dictation.stop();
 
     const history = [...messages, { role: "user", content: userText }];
     setState({ chatMessages: history });
@@ -182,11 +133,11 @@ export default function ChatPage({ openSettings, goWrite }) {
 
       <div className="chat-input-row">
         <button
-          className={`mic-btn ${dictating ? "listening" : ""}`}
-          onClick={toggleMic}
-          disabled={!micSupported}
-          aria-label={dictating ? "Stop dictation" : "Start dictation"}
-          title={micSupported ? "Dictate (speech to text)" : "Speech-to-text isn't supported in this browser (try Chrome or Edge)."}
+          className={`mic-btn ${dictation.dictating ? "listening" : ""}`}
+          onClick={dictation.toggle}
+          disabled={!dictation.supported}
+          aria-label={dictation.dictating ? "Stop dictation" : "Start dictation"}
+          title={dictation.supported ? "Dictate (speech to text)" : "Speech-to-text isn't supported in this browser (try Chrome or Edge)."}
         >
           <Icon name="mic" />
         </button>

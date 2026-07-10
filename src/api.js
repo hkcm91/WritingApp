@@ -94,6 +94,69 @@ export async function streamLongform({ system, userMessage, temperature, onToken
   return full;
 }
 
+// --- Replicate image generation ----------------------------------------------
+
+const REPLICATE_BASE = "https://api.replicate.com/v1";
+
+async function replicateRequest(model, input, token) {
+  return fetch(`${REPLICATE_BASE}/models/${model}/predictions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      Prefer: "wait",
+    },
+    body: JSON.stringify({ input }),
+  });
+}
+
+/** Generate an image; returns a URL. Uses the configured Replicate model. */
+export async function generateImage(prompt) {
+  const { replicateToken, imageModel } = getState();
+  if (!replicateToken) throw new Error("No Replicate API token — add one in Settings.");
+  if (!imageModel.includes("/")) throw new Error("Image model must be owner/name, e.g. black-forest-labs/flux-schnell.");
+
+  // Try with the safety checker disabled (supported by most SD/Flux models);
+  // if the model's schema rejects the extra input, retry with prompt only.
+  let res = await replicateRequest(imageModel, { prompt, disable_safety_checker: true }, replicateToken);
+  if (res.status === 422) {
+    res = await replicateRequest(imageModel, { prompt }, replicateToken);
+  }
+  if (!res.ok) {
+    let detail = "";
+    try { detail = (await res.json()).detail || ""; } catch { /* not json */ }
+    throw new Error(`Replicate ${res.status}: ${detail || res.statusText}`);
+  }
+
+  let prediction = await res.json();
+  // Prefer: wait usually returns a finished prediction; poll if it didn't.
+  for (let i = 0; i < 30 && ["starting", "processing"].includes(prediction.status); i++) {
+    await new Promise((r) => setTimeout(r, 2000));
+    const poll = await fetch(`${REPLICATE_BASE}/predictions/${prediction.id}`, {
+      headers: { Authorization: `Bearer ${replicateToken}` },
+    });
+    prediction = await poll.json();
+  }
+  if (prediction.status !== "succeeded") {
+    throw new Error(`Image generation ${prediction.status}: ${prediction.error || "no output"}`);
+  }
+  const url = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+  if (!url) throw new Error("Model returned no image.");
+  return url;
+}
+
+/** Fetch a generated image and downscale to a data URL for local storage. */
+export async function imageUrlToDataUrl(url, maxDim = 512) {
+  const blob = await (await fetch(url)).blob();
+  const bitmap = await createImageBitmap(blob);
+  const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/jpeg", 0.87);
+}
+
 export async function completeOnce({ model, messages, temperature }) {
   const { apiKey } = getState();
   const res = await fetch(OPENROUTER_URL, {

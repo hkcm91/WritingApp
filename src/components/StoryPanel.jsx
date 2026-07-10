@@ -1,8 +1,10 @@
 import React, { useRef, useState } from "react";
 import { useStore, setState, getState } from "../store.js";
 import { resizeImage, newCharId } from "../importExport.js";
+import { generateImage, imageUrlToDataUrl } from "../api.js";
 import Card from "./Card.jsx";
 import Icon from "./Icon.jsx";
+import { toast } from "../toast.js";
 
 const BIBLE_PLACEHOLDER = `TITLE / FANDOM:
 POV & TENSE:        (e.g. first person, past tense)
@@ -38,8 +40,32 @@ export default function StoryPanel() {
     pendingChar.current = null;
   };
 
+  const [generatingId, setGeneratingId] = useState(null);
+
+  const generatePortrait = async (c) => {
+    if (!getState().replicateToken) {
+      return toast("No Replicate token — add one in Settings to generate portraits.", "error");
+    }
+    if (!c.description.trim() && !c.name.trim()) {
+      return toast("Give the character a name or description first.", "error");
+    }
+    setGeneratingId(c.id);
+    try {
+      const url = await generateImage(
+        `Character portrait, waist-up: ${c.name}. ${c.description}. Detailed, cinematic lighting, painterly.`
+      );
+      const image = await imageUrlToDataUrl(url).catch(() => url);
+      updateChar(c.id, { image });
+      toast("Portrait generated.");
+    } catch (err) {
+      toast(err.message, "error");
+    } finally {
+      setGeneratingId(null);
+    }
+  };
+
   return (
-    <Card title="Story" defaultOpen={initiallyOpen}>
+    <Card id="story" title="Story" defaultOpen={initiallyOpen}>
       <div className="segmented" role="group" aria-label="Story sections">
         {["bible", "cast", "notes"].map((t) => (
           <button key={t} aria-pressed={tab === t} onClick={() => setTab(t)}>
@@ -61,12 +87,25 @@ export default function StoryPanel() {
         <>
           {s.characters.map((c) => (
             <div className="char-card" key={c.id}>
-              <div
-                className="char-img"
-                title="Set portrait"
-                onClick={() => { pendingChar.current = c.id; fileRef.current?.click(); }}
-              >
-                {c.image ? <img src={c.image} alt={c.name || "portrait"} /> : <Icon name="plus" />}
+              <div className="char-img-col">
+                <div
+                  className="char-img"
+                  title="Upload portrait"
+                  onClick={() => { pendingChar.current = c.id; fileRef.current?.click(); }}
+                >
+                  {generatingId === c.id
+                    ? <span className="hint">…</span>
+                    : c.image ? <img src={c.image} alt={c.name || "portrait"} /> : <Icon name="plus" />}
+                </div>
+                <button
+                  className="char-gen"
+                  title="Generate portrait from description"
+                  aria-label={`Generate portrait for ${c.name || "character"}`}
+                  disabled={generatingId !== null}
+                  onClick={() => generatePortrait(c)}
+                >
+                  <Icon name="image" size={13} /> gen
+                </button>
               </div>
               <input
                 placeholder="Name (18+)"

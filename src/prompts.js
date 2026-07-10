@@ -192,6 +192,80 @@ export function parseSuggestions(raw) {
     .filter((sg) => sg.outline);
 }
 
+// --- Scenes -----------------------------------------------------------------
+
+export function buildSplitScenesMessage(s) {
+  return (
+    `${storyContextBlock(s)}\n\n` +
+    `CHAPTER OUTLINE:\n${s.source.trim()}\n\n` +
+    `TASK:\nBreak this chapter outline into 3-6 scenes in story order. Each scene is one ` +
+    `continuous unit of time and place. Return ONLY a JSON array: ` +
+    `[{"title": "short scene name", "outline": "2-4 sentences of what happens in this scene"}]. ` +
+    `No prose outside the JSON.`
+  );
+}
+
+export function buildSceneMessage(s, scene, priorText) {
+  let msg = `${storyContextBlock(s)}\n\n`;
+  if (priorText.trim()) msg += `CHAPTER SO FAR (the scenes already written):\n${priorText.trim()}\n\n`;
+  msg +=
+    `SCENE TO WRITE — ${scene.title || "untitled"}:\n${scene.outline.trim()}\n\n` +
+    `CHAPTER INSTRUCTIONS:\n${s.instructions.trim() || "(No special instructions.)"}\n\n` +
+    `Write ONLY this scene's prose, continuing naturally from the chapter so far. ` +
+    `Do not recap earlier scenes, do not write past this scene's outline, and do not ` +
+    `add a scene-break marker — just the prose.`;
+  return msg;
+}
+
+export function parseScenes(raw) {
+  const tryParse = (str) => { try { return JSON.parse(str); } catch { return null; } };
+  let data = tryParse(raw);
+  if (!Array.isArray(data)) {
+    const match = raw.match(/\[[\s\S]*\]/);
+    if (match) data = tryParse(match[0]);
+  }
+  if (!Array.isArray(data)) throw new Error("Could not parse scenes.");
+  return data
+    .map((sc) => ({
+      title: String(sc.title || "").trim(),
+      outline: String(sc.outline || sc.summary || sc.description || "").trim(),
+    }))
+    .filter((sc) => sc.outline);
+}
+
+// --- Quick prompt (smart fill) ------------------------------------------------
+
+export const SMART_FILL_SYSTEM = `You are the intake organizer for an adult-fiction writing app. All characters
+are adults (18+). The author gives you a freeform prompt — often dictated,
+messy, mixing worldbuilding, character ideas, plot beats, and instructions.
+You receive their current project snapshot for context.
+
+Distribute the prompt's content into the right fields and return ONLY a JSON
+object. Include a key ONLY if the prompt gave you material for it:
+
+{
+  "bible_add": "text to APPEND to the story bible (canon: world rules, POV, tone, heat level, continuity)",
+  "characters_add": [{ "name": "Name (age)", "description": "role, voice, wants, kinks/limits" }],
+  "notes_want_add": "- bullet(s) to APPEND to the steer-toward list",
+  "notes_avoid_add": "- bullet(s) to APPEND to the avoid list",
+  "source": "REPLACES the next-chapter outline, if the prompt describes what happens next",
+  "instructions": "REPLACES the per-chapter instructions (length, heat for this chapter, style asks)",
+  "synopsis_add": "text to APPEND to the running synopsis (only for events described as already having happened)"
+}
+
+Rules: stay faithful to what the author actually said — organize, don't invent.
+Never duplicate content that is already in the snapshot. Keep each entry in the
+author's spirit but cleanly worded. No prose outside the JSON.`;
+
+export function buildSmartFillMessage(s, promptText) {
+  return (
+    `PROJECT SNAPSHOT:\n${storyContextBlock(s)}\n\n` +
+    `CURRENT NEXT-CHAPTER SOURCE:\n${s.source.trim() || "(empty)"}\n\n` +
+    `CURRENT INSTRUCTIONS:\n${s.instructions.trim() || "(empty)"}\n\n` +
+    `AUTHOR PROMPT:\n${promptText}`
+  );
+}
+
 // Pull the first JSON object out of an assistant chat message (fenced or bare).
 export function extractProjectJson(text) {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);

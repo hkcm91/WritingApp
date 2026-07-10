@@ -1,4 +1,4 @@
-import { getState, setState } from "./store.js";
+import { getState, setState, uid } from "./store.js";
 
 // JSON import/export. Accepts camelCase or snake_case keys plus natural
 // aliases; fills only the fields present. Export writes the whole project
@@ -30,8 +30,7 @@ function pickAlias(obj, aliases) {
 
 const text = (v) => (typeof v === "string" ? v : JSON.stringify(v, null, 2));
 
-let charId = Date.now();
-export const newCharId = () => `c${charId++}`;
+export const newCharId = () => uid("c");
 
 /** Apply a project object to the store. Returns the list of filled fields. */
 export function applyImport(obj) {
@@ -126,11 +125,12 @@ export function applyImport(obj) {
 }
 
 export function exportProject() {
-  const { apiKey, storageError, ...project } = getState(); // never write the key to disk
+  // Export the current book only — never keys/tokens, never the whole library.
+  const { apiKey, replicateToken, books, bookId, cardOpen, ...project } = getState();
   const blob = new Blob([JSON.stringify(project, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "chapter-engine-project.json";
+  a.download = `${(project.title || "chapter-engine-project").replace(/[^\w-]+/g, "-").toLowerCase()}.json`;
   a.click();
   URL.revokeObjectURL(a.href);
 }
