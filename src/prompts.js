@@ -319,12 +319,15 @@ export function buildSmartFillMessage(s, promptText) {
 // System prompt that turns the story bible into an in-character roleplay
 // partner. `character` is a cast member the AI embodies, or null for Narrator
 // (game-master) mode. `persona` is who the human plays (optional).
-export function buildRoleplaySystem(s, character, persona) {
+export function buildRoleplaySystem(s, character, personaText, personaCharId) {
   const bibleBlock = s.storyBible.trim() ? `WORLD / STORY BIBLE:\n${s.storyBible.trim()}` : "";
-  const others = (s.characters || []).filter((c) => !character || c.id !== character.id);
+  // Exclude both the AI's character and the human's character from the "other
+  // characters" reference so the AI never voices the human's role.
+  const excludeIds = new Set([character?.id, personaCharId].filter(Boolean));
+  const others = (s.characters || []).filter((c) => !excludeIds.has(c.id));
   const castBlock = serializeCharacters(others);
-  const youPlay = persona?.trim()
-    ? `THE HUMAN PLAYS: ${persona.trim()}`
+  const youPlay = personaText?.trim()
+    ? `THE HUMAN PLAYS: ${personaText.trim()}`
     : `THE HUMAN PLAYS: an original character they'll reveal through the scene — don't assume their name, appearance, or choices.`;
 
   const role = character
@@ -350,11 +353,33 @@ export function buildRoleplaySystem(s, character, persona) {
   ].filter(Boolean).join("\n\n");
 }
 
-export function buildRoleplayOpening(s) {
-  if (s.rpScenario?.trim()) {
-    return `Begin the scene. Opening situation: ${s.rpScenario.trim()}\n\nWrite your first in-character message, setting the scene and inviting me to respond. Keep it short.`;
+export function buildRoleplayOpening(s, openingChapterText) {
+  let msg = "Begin the scene.";
+  if (openingChapterText?.trim()) {
+    msg += ` Use this chapter as the starting point — open at a moment drawn from it (or just after it), staying consistent with what happens here:\n\n${openingChapterText.trim()}`;
   }
-  return `Begin the scene. Open with a vivid in-character moment or greeting that draws me in and invites me to respond. Keep it short.`;
+  if (s.rpScenario?.trim()) {
+    msg += `\n\nOpening situation: ${s.rpScenario.trim()}`;
+  }
+  if (!openingChapterText?.trim() && !s.rpScenario?.trim()) {
+    msg += " Open with a vivid in-character moment or greeting that draws me in.";
+  }
+  msg += "\n\nWrite your first in-character message, setting the scene and inviting me to respond. Keep it short.";
+  return msg;
+}
+
+// 3 opening-scenario ideas for the setup screen, tuned to the chosen
+// character and the human's persona. Reuses parseActionSuggestions to parse.
+export function buildScenarioSuggestMessage(s, character, personaText) {
+  const who = character ? character.name : "characters the narrator introduces";
+  const playing = personaText?.trim() ? ` (the human plays ${personaText.trim()})` : "";
+  return (
+    `${storyContextBlock(s)}\n\n` +
+    `TASK:\nPropose 3 distinct opening scenarios for an interactive roleplay scene where the human${playing} ` +
+    `meets or interacts with ${who}. Each is 1-2 sentences fixing where and when the scene starts and the ` +
+    `immediate situation or tension. Vary the mood across the three. Return ONLY a JSON array of 3 strings. ` +
+    `No prose outside the JSON.`
+  );
 }
 
 // Compact prompt for the "choose your own adventure" action suggestions: 3

@@ -46,8 +46,10 @@ const BOOK_DEFAULTS = {
   chatMessages: [],
   // Roleplay ("Play" page) — interactive back-and-forth using the same bible.
   rpCharId: "", // cast character id the AI embodies, or "narrator" for GM mode
-  rpPersona: "", // who the user plays (name/short description); optional
+  rpPersonaCharId: "", // cast id the user plays AS ("" = custom/typed persona)
+  rpPersona: "", // typed persona (used when rpPersonaCharId is empty)
   rpScenario: "", // opening scene setup; optional
+  rpOpeningChapterN: null, // saved chapter number to seed the opening scene, or null
   rpMessages: [], // [{ role, content }] — the roleplay transcript
   rpStarted: false,
 };

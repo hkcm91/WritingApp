@@ -3,7 +3,7 @@ import { useStore, setState, getState } from "../store.js";
 import { streamCompletion, completeOnce } from "../api.js";
 import {
   buildRoleplaySystem, buildRoleplayOpening,
-  buildRoleplaySuggestMessage, parseActionSuggestions,
+  buildRoleplaySuggestMessage, buildScenarioSuggestMessage, parseActionSuggestions,
 } from "../prompts.js";
 import Icon from "../components/Icon.jsx";
 import useDictation from "../hooks/useDictation.js";
@@ -15,6 +15,16 @@ import { toast } from "../toast.js";
 // action suggestions give it a choose-your-own-adventure feel.
 
 const NARRATOR = { id: "narrator", name: "Narrator", description: "" };
+
+// Resolve the human's persona to a text description: a chosen cast member's
+// name + description, or the typed persona text.
+function resolvePersona(st) {
+  if (st.rpPersonaCharId) {
+    const c = st.characters.find((x) => x.id === st.rpPersonaCharId);
+    if (c) return `${c.name}${c.description ? ` — ${c.description}` : ""}`;
+  }
+  return st.rpPersona;
+}
 
 export default function RoleplayPage({ openSettings }) {
   const s = useStore();
@@ -52,20 +62,27 @@ export default function RoleplayPage({ openSettings }) {
   // fresh each call so edits to the bible/persona take effect immediately).
   const streamReply = async (history) => {
     const st = getState();
-    const char = st.rpCharId === "narrator" ? NARRATOR : st.characters.find((c) => c.id === st.rpCharId) || null;
+    const char = st.rpCharId === "narrator" ? null : st.characters.find((c) => c.id === st.rpCharId) || null;
     let acc = "";
     setLive("…");
     const { text } = await streamCompletion({
       model: st.model,
       temperature: st.temperature,
       messages: [
-        { role: "system", content: buildRoleplaySystem(st, char?.id === "narrator" ? null : char, st.rpPersona) },
+        { role: "system", content: buildRoleplaySystem(st, char, resolvePersona(st), st.rpPersonaCharId) },
         ...history.map((m) => ({ role: m.role, content: m.content })),
       ],
       onToken: (t) => { acc += t; setLive(acc); },
     });
     setLive("");
     return (text || acc).trim();
+  };
+
+  const openingMessage = (st) => {
+    const chapter = st.rpOpeningChapterN != null
+      ? st.chapters.find((c) => c.n === st.rpOpeningChapterN)
+      : null;
+    return buildRoleplayOpening(st, chapter?.text);
   };
 
   const begin = async () => {
@@ -75,7 +92,7 @@ export default function RoleplayPage({ openSettings }) {
     setBusy(true);
     say("Setting the scene…");
     try {
-      const reply = await streamReply([{ role: "user", content: buildRoleplayOpening(getState()) }]);
+      const reply = await streamReply([{ role: "user", content: openingMessage(getState()) }]);
       if (!reply) throw new Error("The scene came back empty — try again.");
       setState({ rpStarted: true, rpMessages: [{ role: "assistant", content: reply }] });
       say("");
@@ -117,13 +134,41 @@ export default function RoleplayPage({ openSettings }) {
     setSuggestions([]);
     setBusy(true);
     try {
-      const reply = await streamReply(history.length ? history : [{ role: "user", content: buildRoleplayOpening(getState()) }]);
+      const reply = await streamReply(history.length ? history : [{ role: "user", content: openingMessage(getState()) }]);
       if (!reply) throw new Error("Empty reply — try again.");
       setState({ rpMessages: [...history, { role: "assistant", content: reply }] });
     } catch (err) {
       say(err.message, "error");
     } finally {
       setBusy(false);
+    }
+  };
+
+  // Setup-screen: AI-suggested opening scenarios, tap to autofill the field.
+  const [scenarioIdeas, setScenarioIdeas] = useState([]);
+  const [suggestingScene, setSuggestingScene] = useState(false);
+  const suggestScenarios = async () => {
+    if (needKey() || suggestingScene) return;
+    const st = getState();
+    if (!st.rpCharId) return say("Pick who you're talking to first.", "error");
+    if (!st.storyBible.trim()) return say("Add some Story Bible canon first.", "error");
+    setSuggestingScene(true);
+    setScenarioIdeas([]);
+    try {
+      const char = st.rpCharId === "narrator" ? null : st.characters.find((c) => c.id === st.rpCharId) || null;
+      const raw = await completeOnce({
+        model: st.model,
+        temperature: 0.95,
+        messages: [{ role: "user", content: buildScenarioSuggestMessage(st, char, resolvePersona(st)) }],
+      });
+      const list = parseActionSuggestions(raw);
+      if (!list.length) throw new Error("No scenes came back.");
+      setScenarioIdeas(list);
+      say("");
+    } catch (err) {
+      say(`Couldn't suggest scenes: ${err.message}`, "error");
+    } finally {
+      setSuggestingScene(false);
     }
   };
 
@@ -174,7 +219,7 @@ export default function RoleplayPage({ openSettings }) {
               <button
                 key={c.id}
                 className={`rp-char-card ${s.rpCharId === c.id ? "selected" : ""}`}
-                onClick={() => setState({ rpCharId: c.id })}
+                onClick={() => setState({ rpCharId: c.id, ...(s.rpPersonaCharId === c.id ? { rpPersonaCharId: "" } : {}) })}
               >
                 <span className="rp-char-avatar">
                   {c.id === "narrator"
@@ -187,24 +232,75 @@ export default function RoleplayPage({ openSettings }) {
             ))}
           </div>
 
-          <label className="field">
-            <span className="field-label">Who do you play? (optional)</span>
+          <span className="field-label">Who do you play?</span>
+          <div className="rp-char-grid">
+            <button
+              className={`rp-char-card ${!s.rpPersonaCharId ? "selected" : ""}`}
+              onClick={() => setState({ rpPersonaCharId: "" })}
+            >
+              <span className="rp-char-avatar"><Icon name="pen" size={18} /></span>
+              <span className="rp-char-name">Custom / just me</span>
+            </button>
+            {s.characters.filter((c) => c.id !== s.rpCharId).map((c) => (
+              <button
+                key={c.id}
+                className={`rp-char-card ${s.rpPersonaCharId === c.id ? "selected" : ""}`}
+                onClick={() => setState({ rpPersonaCharId: c.id })}
+              >
+                <span className="rp-char-avatar">
+                  {c.image ? <img src={c.image} alt="" /> : (c.name?.[0] || "?")}
+                </span>
+                <span className="rp-char-name">{c.name || "(unnamed)"}</span>
+              </button>
+            ))}
+          </div>
+          {!s.rpPersonaCharId && (
             <input
               type="text"
               value={s.rpPersona}
               onChange={(e) => setState({ rpPersona: e.target.value })}
-              placeholder="A name and a line about your character — or leave blank to stay a mystery"
+              placeholder="A name and a line about who you play — or leave blank to stay a mystery"
             />
-          </label>
+          )}
 
-          <label className="field">
+          {s.chapters.length > 0 && (
+            <label className="field">
+              <span className="field-label">Start from a chapter (optional)</span>
+              <select
+                className="art-select"
+                value={s.rpOpeningChapterN ?? ""}
+                onChange={(e) => setState({ rpOpeningChapterN: e.target.value ? Number(e.target.value) : null })}
+              >
+                <option value="">Fresh scene (no chapter)</option>
+                {s.chapters.map((c) => (
+                  <option key={c.n} value={c.n}>Chapter {c.n}</option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          <div className="btn-row">
             <span className="field-label">Opening scene (optional)</span>
-            <textarea
-              value={s.rpScenario}
-              onChange={(e) => setState({ rpScenario: e.target.value })}
-              placeholder="Where and when does this start? e.g. “Late at the keep, snowed in, everyone else asleep.”"
-            />
-          </label>
+            <span className="spacer" />
+            <button className="btn-secondary" onClick={suggestScenarios} disabled={suggestingScene}>
+              <Icon name="compass" size={15} />
+              {suggestingScene ? "Thinking…" : "Suggest scenes"}
+            </button>
+          </div>
+          <textarea
+            value={s.rpScenario}
+            onChange={(e) => setState({ rpScenario: e.target.value })}
+            placeholder="Where and when does this start? e.g. “Late at the keep, snowed in, everyone else asleep.”"
+          />
+          {scenarioIdeas.map((idea, i) => (
+            <button
+              key={i}
+              className="rp-action-chip"
+              onClick={() => { setState({ rpScenario: idea }); setScenarioIdeas([]); }}
+            >
+              {idea}
+            </button>
+          ))}
 
           <button className="btn" onClick={begin} disabled={busy || !s.rpCharId}>
             {busy ? "Setting the scene…" : "Begin scene"}
@@ -226,7 +322,13 @@ export default function RoleplayPage({ openSettings }) {
         </span>
         <div className="rp-header-info">
           <span className="rp-header-name">{character?.name || "Scene"}</span>
-          <span className="rp-header-sub">{s.rpPersona ? `You: ${s.rpPersona}` : "Interactive scene"}</span>
+          <span className="rp-header-sub">
+            {(() => {
+              const p = resolvePersona(s);
+              const name = s.rpPersonaCharId ? p.split("—")[0].trim() : p;
+              return name ? `You: ${name}` : "Interactive scene";
+            })()}
+          </span>
         </div>
         <button className="btn-secondary" onClick={resetScene}>End scene</button>
       </div>
