@@ -314,6 +314,72 @@ export function buildSmartFillMessage(s, promptText) {
   );
 }
 
+// --- Roleplay (interactive back-and-forth using the same bible) --------------
+
+// System prompt that turns the story bible into an in-character roleplay
+// partner. `character` is a cast member the AI embodies, or null for Narrator
+// (game-master) mode. `persona` is who the human plays (optional).
+export function buildRoleplaySystem(s, character, persona) {
+  const bibleBlock = s.storyBible.trim() ? `WORLD / STORY BIBLE:\n${s.storyBible.trim()}` : "";
+  const others = (s.characters || []).filter((c) => !character || c.id !== character.id);
+  const castBlock = serializeCharacters(others);
+  const youPlay = persona?.trim()
+    ? `THE HUMAN PLAYS: ${persona.trim()}`
+    : `THE HUMAN PLAYS: an original character they'll reveal through the scene — don't assume their name, appearance, or choices.`;
+
+  const role = character
+    ? `You are roleplaying as ${character.name}${character.description ? ` — ${character.description}` : ""}. ` +
+      `Fully embody ${character.name}: their voice, mannerisms, wants, and limits. Stay in character at all times.`
+    : `You are the NARRATOR and game master of an interactive scene. Voice every character the human meets, ` +
+      `narrate the world and what happens, and keep the story moving. Stay immersive at all times.`;
+
+  return [
+    `You are an immersive roleplay partner for an interactive, back-and-forth story written for an adult audience. All characters are adults (18+).`,
+    role,
+    bibleBlock,
+    castBlock ? `OTHER CHARACTERS (for reference — voice them only as the scene needs):\n${castBlock}` : "",
+    s.notesAvoid.trim() ? `HARD LIMITS — never include:\n${s.notesAvoid.trim()}` : "",
+    youPlay,
+    `How to play:
+- Write in an immersive present-tense style: narrate actions and the scene, and put spoken words in quotation marks.
+- Respond directly to what the human's character says and does. React, don't railroad.
+- NEVER write the human's dialogue, thoughts, decisions, or actions for them. Stop at a natural beat and leave space for them to respond.
+- Keep each reply short — a beat or two, at most a few small paragraphs. This is a conversation, not a chapter.
+- Honor the tone and heat level in the Bible. If a scene turns intimate and the Bible allows it, don't fade to black — but never rush past the human's consent to act.
+- Never break character, mention being an AI, or add out-of-story commentary, notes, or headings.`,
+  ].filter(Boolean).join("\n\n");
+}
+
+export function buildRoleplayOpening(s) {
+  if (s.rpScenario?.trim()) {
+    return `Begin the scene. Opening situation: ${s.rpScenario.trim()}\n\nWrite your first in-character message, setting the scene and inviting me to respond. Keep it short.`;
+  }
+  return `Begin the scene. Open with a vivid in-character moment or greeting that draws me in and invites me to respond. Keep it short.`;
+}
+
+// Compact prompt for the "choose your own adventure" action suggestions: 3
+// short things the human's character could do or say next.
+export function buildRoleplaySuggestMessage(rpMessages) {
+  const recent = rpMessages.slice(-6).map((m) => `${m.role === "user" ? "ME" : "THEM"}: ${m.content}`).join("\n");
+  return (
+    `Here is the recent roleplay:\n${recent}\n\n` +
+    `Suggest 3 short, distinct things I (the human's character) could do or say next to move the scene forward — ` +
+    `a mix of tones (bold, cautious, playful, etc.). Each is one short sentence in first person or an action. ` +
+    `Return ONLY a JSON array of 3 strings. No prose outside the JSON.`
+  );
+}
+
+export function parseActionSuggestions(raw) {
+  const tryParse = (str) => { try { return JSON.parse(str); } catch { return null; } };
+  let data = tryParse(raw);
+  if (!Array.isArray(data)) {
+    const match = raw.match(/\[[\s\S]*\]/);
+    if (match) data = tryParse(match[0]);
+  }
+  if (!Array.isArray(data)) return [];
+  return data.map((x) => String(x).trim()).filter(Boolean).slice(0, 4);
+}
+
 // Pull the first JSON object out of an assistant chat message (fenced or bare).
 export function extractProjectJson(text) {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);

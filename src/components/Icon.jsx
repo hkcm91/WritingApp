@@ -118,6 +118,20 @@ const PATHS = {
       <path d="m21 15-5-5L5 21" />
     </>
   ),
+  compass: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+    </>
+  ),
+  refresh: (
+    <>
+      <path d="M23 4v6h-6" />
+      <path d="M1 20v-6h6" />
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10" />
+      <path d="M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+    </>
+  ),
 };
 
 export default function Icon({ name, size = 18, ...rest }) {

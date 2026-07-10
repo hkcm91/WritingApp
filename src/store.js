@@ -44,6 +44,12 @@ const BOOK_DEFAULTS = {
   rewriteOutput: "",
   rewriteContext: true,
   chatMessages: [],
+  // Roleplay ("Play" page) — interactive back-and-forth using the same bible.
+  rpCharId: "", // cast character id the AI embodies, or "narrator" for GM mode
+  rpPersona: "", // who the user plays (name/short description); optional
+  rpScenario: "", // opening scene setup; optional
+  rpMessages: [], // [{ role, content }] — the roleplay transcript
+  rpStarted: false,
 };
 
 let idCounter = Date.now();

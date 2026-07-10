@@ -5,6 +5,7 @@ import WritePage from "./pages/WritePage.jsx";
 import RewritePage from "./pages/RewritePage.jsx";
 import ChatPage from "./pages/ChatPage.jsx";
 import LibraryPage from "./pages/LibraryPage.jsx";
+import RoleplayPage from "./pages/RoleplayPage.jsx";
 import Reader from "./components/Reader.jsx";
 import SettingsSheet from "./components/SettingsSheet.jsx";
 import Icon from "./components/Icon.jsx";
@@ -12,8 +13,9 @@ import Icon from "./components/Icon.jsx";
 const NAV = [
   { id: "library", label: "Library", icon: "library" },
   { id: "write", label: "Write", icon: "pen" },
+  { id: "play", label: "Play", icon: "compass" },
   { id: "rewrite", label: "Rewrite", icon: "wand" },
-  { id: "chat", label: "Brain Dump", icon: "chat" },
+  { id: "chat", label: "Ideas", icon: "chat" },
 ];
 
 function NavButtons({ page, setPage }) {
@@ -105,6 +107,7 @@ export default function App() {
 
       {page === "library" && <LibraryPage goWrite={() => setPage("write")} />}
       {page === "write" && <WritePage onRead={openReader} openSettings={() => setSettingsOpen(true)} goRewrite={() => setPage("rewrite")} />}
+      {page === "play" && <RoleplayPage openSettings={() => setSettingsOpen(true)} />}
       {page === "rewrite" && <RewritePage onRead={openReader} openSettings={() => setSettingsOpen(true)} goWrite={() => setPage("write")} />}
       {page === "chat" && <ChatPage openSettings={() => setSettingsOpen(true)} goWrite={() => setPage("write")} />}
 

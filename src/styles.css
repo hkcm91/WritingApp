@@ -701,6 +701,121 @@ label.field { display: flex; flex-direction: column; gap: var(--sp-1); }
 .send-btn:disabled { opacity: 0.5; }
 
 /* =============================================================================
+   Roleplay ("Play" page)
+   ========================================================================== */
+
+.rp-setup { display: flex; flex-direction: column; gap: var(--sp-3); max-width: 620px; margin: 0 auto; }
+.rp-setup-title { margin: 0; font-family: Georgia, serif; font-size: var(--fs-xl); }
+
+.rp-char-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--sp-2);
+}
+
+.rp-char-card {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  background: var(--surface);
+  border: 1px solid var(--edge);
+  border-radius: var(--r-md);
+  padding: var(--sp-2) var(--sp-3);
+  min-height: 56px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+}
+
+.rp-char-card:hover { border-color: var(--accent); }
+.rp-char-card.selected { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
+
+.rp-char-avatar {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--edge);
+  display: grid;
+  place-items: center;
+  color: var(--dim);
+  font-family: Georgia, serif;
+  font-size: var(--fs-md);
+}
+
+.rp-char-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.rp-char-name { font-weight: 600; font-size: var(--fs-sm); line-height: 1.2; }
+.rp-char-sub { display: block; font-size: var(--fs-xs); color: var(--dim); }
+
+.rp-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-1);
+  border-bottom: 1px solid var(--edge);
+  margin-bottom: var(--sp-2);
+}
+
+.rp-header-avatar {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--edge);
+  display: grid;
+  place-items: center;
+  color: var(--dim);
+  font-family: Georgia, serif;
+}
+
+.rp-header-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.rp-header-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rp-header-name { font-family: Georgia, serif; font-weight: 700; font-size: var(--fs-lg); }
+.rp-header-sub { font-size: var(--fs-xs); color: var(--dim); }
+
+/* Immersive RP bubbles — wider and airier than the compact brain-dump chat */
+.chat-msg.rp { max-width: 92%; font-size: var(--fs-md); line-height: 1.6; }
+.chat-msg.rp.assistant { background: var(--surface); border: 1px solid var(--edge); }
+
+.rp-regen {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--dim);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2);
+}
+
+.rp-regen:hover { color: var(--accent); }
+
+.rp-actions { display: flex; flex-direction: column; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+
+.rp-action-chip {
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  border-radius: var(--r-md);
+  padding: var(--sp-2) var(--sp-3);
+  min-height: 44px;
+  font-size: var(--fs-sm);
+  text-align: left;
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.rp-action-chip:hover { background: color-mix(in srgb, var(--accent) 16%, var(--surface)); }
+
+.rp-input-tools { display: flex; justify-content: flex-start; margin-bottom: var(--sp-2); }
+
+/* =============================================================================
    Library
    ========================================================================== */
 
