@@ -34,8 +34,9 @@ const BOOK_DEFAULTS = {
   characters: [],
   notesWant: "",
   notesAvoid: "",
+  targetWords: 2200, // 0 disables forced continuation toward a length target
   draftText: "",
-  chapters: [],
+  chapters: [], // [{ n, text, summary, source, instructions, mode, scenes, targetWords }]
   activeChapter: null,
   scenes: [], // [{ id, title, outline, text }] — workspace for the chapter in progress
   rewriteInput: "",
@@ -52,14 +53,23 @@ function freshBook(title) {
   return { ...BOOK_DEFAULTS, title: title || BOOK_DEFAULTS.title, id: uid("bk") };
 }
 
+// Backfill any BOOK_DEFAULTS keys a persisted book predates (e.g. a field
+// added in a later version) so components never see undefined for them.
+function withBookDefaults(book) {
+  return { ...BOOK_DEFAULTS, ...book };
+}
+
 function load() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
     if (raw) {
       const data = JSON.parse(raw);
+      const books = data.books && Object.keys(data.books).length
+        ? Object.fromEntries(Object.entries(data.books).map(([id, book]) => [id, withBookDefaults(book)]))
+        : { [uid("bk")]: freshBook() };
       return {
         global: { ...GLOBAL_DEFAULTS, ...data.global },
-        books: data.books && Object.keys(data.books).length ? data.books : { [uid("bk")]: freshBook() },
+        books,
         currentBookId: data.currentBookId,
       };
     }

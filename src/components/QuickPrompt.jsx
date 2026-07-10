@@ -20,12 +20,33 @@ function applySmartFill(json) {
     filled.push("Bible");
   }
   if (Array.isArray(json.characters_add) && json.characters_add.length) {
-    const add = json.characters_add
-      .filter((c) => c && (c.name || c.description))
-      .map((c) => ({ id: newCharId(), name: String(c.name || ""), description: String(c.description || ""), image: "" }));
-    if (add.length) {
-      patch.characters = [...s.characters, ...add];
-      filled.push(`Cast (+${add.length})`);
+    // Upsert by first name: mentioning an existing character updates their
+    // entry (the AI can now edit cast members, not just add duplicates).
+    let characters = s.characters;
+    let updated = 0;
+    let added = 0;
+    const firstToken = (name) => (name || "").trim().split(/[\s(]/)[0].toLowerCase();
+
+    for (const raw of json.characters_add) {
+      if (!raw || !(raw.name || raw.description)) continue;
+      const name = String(raw.name || "");
+      const description = String(raw.description || "");
+      const token = firstToken(name);
+      const matchIdx = token ? characters.findIndex((c) => firstToken(c.name) === token) : -1;
+      if (matchIdx !== -1) {
+        characters = characters.map((c, i) => (i === matchIdx ? { ...c, name: name || c.name, description: description || c.description } : c));
+        updated++;
+      } else {
+        characters = [...characters, { id: newCharId(), name, description, image: "" }];
+        added++;
+      }
+    }
+    if (updated || added) {
+      patch.characters = characters;
+      const parts = [];
+      if (added) parts.push(`+${added}`);
+      if (updated) parts.push(`${updated} updated`);
+      filled.push(`Cast (${parts.join(", ")})`);
     }
   }
   if (typeof json.notes_want_add === "string" && json.notes_want_add.trim()) {

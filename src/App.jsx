@@ -104,7 +104,7 @@ export default function App() {
       </header>
 
       {page === "library" && <LibraryPage goWrite={() => setPage("write")} />}
-      {page === "write" && <WritePage onRead={openReader} openSettings={() => setSettingsOpen(true)} />}
+      {page === "write" && <WritePage onRead={openReader} openSettings={() => setSettingsOpen(true)} goRewrite={() => setPage("rewrite")} />}
       {page === "rewrite" && <RewritePage onRead={openReader} openSettings={() => setSettingsOpen(true)} goWrite={() => setPage("write")} />}
       {page === "chat" && <ChatPage openSettings={() => setSettingsOpen(true)} goWrite={() => setPage("write")} />}
 

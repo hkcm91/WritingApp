@@ -5,6 +5,7 @@ import {
   SYSTEM_PROMPT, SUMMARY_PROMPT,
   buildUserMessage, buildContinueMessage, buildSuggestMessage, parseSuggestions,
 } from "../prompts.js";
+import { wordCount } from "../wordCount.js";
 import StoryPanel from "../components/StoryPanel.jsx";
 import Card from "../components/Card.jsx";
 import Icon from "../components/Icon.jsx";
@@ -13,9 +14,13 @@ import ScenesCard from "../components/ScenesCard.jsx";
 import ArtCard from "../components/ArtCard.jsx";
 import { toast } from "../toast.js";
 
-const wordCount = (t) => t.trim().split(/\s+/).filter(Boolean).length;
+// Fields that make up "the workbench" for whichever chapter is open — these
+// snapshot into the chapter record on save, and restore when you reopen it,
+// so switching chapters brings back the outline/instructions/scenes you used,
+// not just the finished prose.
+const WORKBENCH_KEYS = ["source", "instructions", "mode", "scenes", "targetWords"];
 
-export default function WritePage({ onRead, openSettings }) {
+export default function WritePage({ onRead, openSettings, goRewrite }) {
   const s = useStore();
   const [progress, setProgress] = useState(""); // generation progress, inline
   const [busy, setBusy] = useState(false);
@@ -35,16 +40,42 @@ export default function WritePage({ onRead, openSettings }) {
     const st = getState();
     const text = st.draftText.trim();
     if (!text) return null;
+    const workbench = Object.fromEntries(WORKBENCH_KEYS.map((k) => [k, st[k]]));
     let chapters, active;
     if (st.activeChapter !== null && st.chapters[st.activeChapter]) {
-      chapters = st.chapters.map((c, i) => (i === st.activeChapter ? { ...c, text } : c));
+      chapters = st.chapters.map((c, i) => (i === st.activeChapter ? { ...c, text, ...workbench } : c));
       active = st.activeChapter;
     } else {
-      chapters = [...st.chapters, { n: nextChapterNumber(st), text, summary: "" }];
+      chapters = [...st.chapters, { n: nextChapterNumber(st), text, summary: "", ...workbench }];
       active = chapters.length - 1;
     }
     setState({ chapters, activeChapter: active });
     return chapters[active];
+  };
+
+  const openChapter = (i) => {
+    const c = s.chapters[i];
+    if (!c) return;
+    setState({
+      activeChapter: i,
+      draftText: c.text,
+      source: c.source ?? "",
+      instructions: c.instructions ?? "",
+      mode: c.mode ?? "GENERATE",
+      scenes: c.scenes ?? [],
+      targetWords: c.targetWords ?? 2200,
+    });
+  };
+
+  const newChapterDraft = () => {
+    setState({
+      activeChapter: null,
+      draftText: "",
+      source: "",
+      instructions: "",
+      scenes: [],
+    });
+    toast(`Starting Chapter ${nextChapterNumber(getState())}.`);
   };
 
   const generate = async () => {
@@ -56,7 +87,7 @@ export default function WritePage({ onRead, openSettings }) {
     }
 
     setBusy(true);
-    setState({ draftText: "", activeChapter: null });
+    setState({ draftText: "" });
     setProgress("Writing…");
 
     try {
@@ -64,6 +95,7 @@ export default function WritePage({ onRead, openSettings }) {
         system: SYSTEM_PROMPT,
         userMessage: buildUserMessage(st),
         temperature: st.temperature,
+        targetWords: st.targetWords,
         onToken: (t) => setState((prev) => ({ draftText: prev.draftText + t })),
       });
       // onToken streams live as tokens arrive, before a round can be judged
@@ -123,6 +155,8 @@ export default function WritePage({ onRead, openSettings }) {
         system: SYSTEM_PROMPT,
         userMessage: buildContinueMessage(getState(), soFar),
         temperature: getState().temperature,
+        targetWords: getState().targetWords,
+        baselineWords: wordCount(soFar),
         onToken: (t) => setState((prev) => ({ draftText: prev.draftText + t })),
       });
       // Resync to base + clean result — see the same note in generate() above.
@@ -230,6 +264,21 @@ export default function WritePage({ onRead, openSettings }) {
               onChange={(e) => setState({ instructions: e.target.value })}
             />
           </label>
+          <label className="field">
+            <span className="field-label">Target length (words) — 0 to disable</span>
+            <input
+              type="number"
+              min="0"
+              max="8000"
+              step="100"
+              value={s.targetWords ?? 2200}
+              onChange={(e) => setState({ targetWords: Math.max(0, parseInt(e.target.value, 10) || 0) })}
+            />
+          </label>
+          <span className="hint">
+            The model keeps writing — slowing down on scenes rather than padding — until it reaches this
+            length, even past a natural stopping point. Set to 0 to let it stop whenever it wants.
+          </span>
           <div className="status">{progress}</div>
 
           <div className="btn-row">
@@ -268,6 +317,25 @@ export default function WritePage({ onRead, openSettings }) {
       </div>
 
       <div className="write-main">
+        {s.chapters.length > 0 && (
+          <div className="chapter-strip" role="tablist" aria-label="Switch chapter">
+            {s.chapters.map((c, i) => (
+              <button
+                key={c.n}
+                className={`chapter-pill ${i === s.activeChapter ? "active" : ""}`}
+                onClick={() => openChapter(i)}
+                role="tab"
+                aria-selected={i === s.activeChapter}
+              >
+                Ch {c.n}
+              </button>
+            ))}
+            <button className="chapter-pill new" onClick={newChapterDraft}>
+              <Icon name="plus" size={14} /> New
+            </button>
+          </div>
+        )}
+
         <section className="manuscript" aria-label="Manuscript">
           <div className="manuscript-head">
             <span className="manuscript-title">{chapterLabel}</span>
@@ -293,6 +361,18 @@ export default function WritePage({ onRead, openSettings }) {
                 disabled={busy}
               >
                 <Icon name="play" size={17} />
+              </button>
+              <button
+                className="icon-btn"
+                title="Ask the AI to edit this chapter"
+                aria-label="Send to Rewrite"
+                onClick={() => {
+                  if (!s.draftText.trim()) return toast("Nothing to edit yet.", "error");
+                  setState({ rewriteInput: s.draftText });
+                  goRewrite();
+                }}
+              >
+                <Icon name="wand" size={17} />
               </button>
               <button
                 className="icon-btn"
@@ -329,7 +409,7 @@ export default function WritePage({ onRead, openSettings }) {
               <div
                 key={c.n}
                 className={`chapter-item ${i === s.activeChapter ? "active" : ""}`}
-                onClick={() => setState({ activeChapter: i, draftText: c.text })}
+                onClick={() => openChapter(i)}
               >
                 <span>Chapter {c.n}</span>
                 <span className="meta">{wordCount(c.text).toLocaleString()} words</span>

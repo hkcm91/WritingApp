@@ -1,6 +1,8 @@
 // The engine's prompts and message builders — the single source of truth for
 // what gets sent to the model. Ported verbatim from the original spec.
 
+import { wordCount } from "./wordCount.js";
+
 export const SYSTEM_PROMPT = `You are a professional author of explicit adult fiction, writing mature
 fan fiction for an adult audience. All characters are adults (18+).
 You produce polished, in-voice prose for a book written one chapter at a time.
@@ -34,7 +36,11 @@ Rules:
   no commentary unless the Instructions explicitly ask for it.
 - STANDING NOTES, when present, extend the Instructions: STEER TOWARD items
   are direction to weave in when the story allows; AVOID items are absolute
-  prohibitions that outrank everything except character limits.`;
+  prohibitions that outrank everything except character limits.
+- When a TARGET LENGTH is given, treat it as a floor to write toward, not a
+  quota to summarize your way to. Reach it by slowing down — fuller scenes,
+  more dialogue, more interiority, more sensory grounding — never by padding
+  with repetition or filler, and never by rushing through beats to finish early.`;
 
 export const REWRITE_SYSTEM_PROMPT = `You are a professional author and line editor of explicit adult fiction
 for an adult audience. All characters are adults (18+).
@@ -128,6 +134,11 @@ ${s.instructions.trim() || "(No special instructions.)"}`;
   if (s.notesAvoid.trim()) {
     msg += `\n\nSTANDING NOTES — AVOID (hard rules, never include):\n${s.notesAvoid.trim()}`;
   }
+  if (s.targetWords > 0) {
+    msg += `\n\nTARGET LENGTH: approximately ${s.targetWords} words for this chapter. Do not stop early ` +
+      `or wrap up prematurely — take your time on scenes, include full dialogue and interiority, and keep ` +
+      `writing until you reach this length.`;
+  }
   return msg;
 }
 
@@ -144,13 +155,19 @@ export function storyContextBlock(s) {
 }
 
 export function buildContinueMessage(s, soFar) {
-  return (
+  let msg =
     `${storyContextBlock(s)}\n\n` +
     `CHAPTER SO FAR:\n${soFar}\n\n` +
     `INSTRUCTIONS:\nContinue this chapter seamlessly from the exact point it stops. ` +
     `Do not repeat, recap, or summarize any of it. Pick up mid-flow and keep the ` +
-    `same POV, tense, voice, and heat level. Write only the continuation.`
-  );
+    `same POV, tense, voice, and heat level. Write only the continuation.`;
+  if (s.targetWords > 0) {
+    const words = wordCount(soFar);
+    msg += `\n\nTARGET LENGTH: the chapter is about ${words} of a target ${s.targetWords} words so far. ` +
+      `Don't rush to wrap up — slow down and develop the current scene further (more dialogue, sensory ` +
+      `detail, interiority) or move into the next outline beat, until the chapter reaches its target length.`;
+  }
+  return msg;
 }
 
 export function buildRewriteMessage(s, { input, prompt, includeContext }) {
@@ -275,6 +292,14 @@ object. Include a key ONLY if the prompt gave you material for it:
   "instructions": "REPLACES the per-chapter instructions (length, heat for this chapter, style asks)",
   "synopsis_add": "text to APPEND to the running synopsis (only for events described as already having happened)"
 }
+
+characters_add is an UPSERT matched by first name: if the author gives new or
+corrected information about a character who already exists in the snapshot
+(e.g. "actually Maren is 30, not 28" or "give Thorne a scar"), put that
+character's FULL, updated description in characters_add — merge the new
+detail into everything already known about them, don't just state the new
+fact alone, since this replaces their existing entry rather than appending to
+it. Only use a genuinely new name for a new character.
 
 Rules: stay faithful to what the author actually said — organize, don't invent.
 Never duplicate content that is already in the snapshot. Keep each entry in the

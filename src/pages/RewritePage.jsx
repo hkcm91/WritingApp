@@ -4,9 +4,8 @@ import { streamLongform } from "../api.js";
 import { REWRITE_SYSTEM_PROMPT, buildRewriteMessage } from "../prompts.js";
 import Card from "../components/Card.jsx";
 import Icon from "../components/Icon.jsx";
+import { wordCount } from "../wordCount.js";
 import { toast } from "../toast.js";
-
-const wordCount = (t) => t.trim().split(/\s+/).filter(Boolean).length;
 
 export default function RewritePage({ onRead, openSettings, goWrite }) {
   const s = useStore();

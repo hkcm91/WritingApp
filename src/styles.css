@@ -332,6 +332,40 @@ details.card[open] > summary .chev { transform: rotate(90deg); }
 .hint { font-size: var(--fs-xs); color: var(--dim); }
 
 /* =============================================================================
+   Chapter switch strip
+   ========================================================================== */
+
+.chapter-strip {
+  display: flex;
+  gap: var(--sp-2);
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.chapter-pill {
+  flex-shrink: 0;
+  background: var(--surface);
+  border: 1px solid var(--edge);
+  color: var(--dim);
+  border-radius: 999px;
+  padding: var(--sp-2) var(--sp-4);
+  min-height: 38px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chapter-pill.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+
+.chapter-pill.new {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  background: transparent;
+}
+
+/* =============================================================================
    Manuscript — the hero surface
    ========================================================================== */
 
