@@ -97,6 +97,24 @@ export default function SettingsSheet({ onClose }) {
           <span>{s.temperature.toFixed(2)}</span>
         </div>
 
+        <div className="range-row">
+          <span className="field-label">Focus (top_p)</span>
+          <input
+            type="range"
+            min="0.5"
+            max="1.0"
+            step="0.01"
+            value={s.topP}
+            onChange={(e) => setState({ topP: Number(e.target.value) })}
+          />
+          <span>{s.topP.toFixed(2)}</span>
+        </div>
+        <span className="hint">
+          If output turns to gibberish or starts mixing in other languages (a known issue with some
+          models at high temperature, Cohere's Command models especially), lower this — it trims off
+          the least-likely word choices before sampling. Raise it back up for more variety.
+        </span>
+
         <label className="field">
           <span className="field-label">Max length per request (tokens; ~750 words per 1,000)</span>
           <input

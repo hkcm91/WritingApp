@@ -28,14 +28,24 @@ export default function RewritePage({ onRead, openSettings, goWrite }) {
     setState({ rewriteOutput: "" });
     setProgress("Rewriting…");
     try {
-      const result = await streamLongform({
+      const { text: result, degenerate } = await streamLongform({
         system: REWRITE_SYSTEM_PROMPT,
         userMessage: buildRewriteMessage(getState(), { input, prompt, includeContext: getState().rewriteContext }),
         temperature: getState().temperature,
         onToken: (t) => setState((prev) => ({ rewriteOutput: prev.rewriteOutput + t })),
       });
-      if (!result.trim()) throw new Error("Model returned nothing.");
-      toast("Rewrite done.");
+      // Resync to the clean accumulated text — see the note in WritePage.generate().
+      setState({ rewriteOutput: result });
+      if (!result.trim()) {
+        throw new Error(
+          degenerate
+            ? "The model produced corrupted/garbled output. Try again, or lower Temperature/top_p in Settings."
+            : "Model returned nothing."
+        );
+      }
+      toast(degenerate
+        ? "Rewrite stopped early after producing corrupted output. Consider lowering Temperature or top_p in Settings."
+        : "Rewrite done.", degenerate ? "error" : "ok");
     } catch (err) {
       toast(err.message, "error");
     } finally {

@@ -13,6 +13,7 @@ const GLOBAL_DEFAULTS = {
   model: "cohere/command-a",
   summaryModel: "cohere/command-a",
   temperature: 1.0,
+  topP: 0.92,
   maxTokens: 8192,
   autoContinue: true,
   replicateToken: "",

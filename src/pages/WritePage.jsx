@@ -60,13 +60,26 @@ export default function WritePage({ onRead, openSettings }) {
     setProgress("Writing…");
 
     try {
-      const chapterText = await streamLongform({
+      const { text: chapterText, degenerate } = await streamLongform({
         system: SYSTEM_PROMPT,
         userMessage: buildUserMessage(st),
         temperature: st.temperature,
         onToken: (t) => setState((prev) => ({ draftText: prev.draftText + t })),
       });
-      if (!chapterText.trim()) throw new Error("Model returned an empty chapter.");
+      // onToken streams live as tokens arrive, before a round can be judged
+      // degenerate — resync the pane to the clean accumulated text so a
+      // dropped corrupted round never lingers on screen or gets saved.
+      setState({ draftText: chapterText });
+      if (!chapterText.trim()) {
+        throw new Error(
+          degenerate
+            ? "The model produced corrupted/garbled output and nothing usable came through. Try again, or lower Temperature/top_p in Settings."
+            : "Model returned an empty chapter."
+        );
+      }
+      if (degenerate) {
+        toast("Generation was stopped early after producing corrupted output — the chapter may be incomplete. Consider lowering Temperature or top_p in Settings.", "error");
+      }
 
       const chapter = saveChapter();
       setProgress("Updating synopsis…");
@@ -103,15 +116,27 @@ export default function WritePage({ onRead, openSettings }) {
     setBusy(true);
     setProgress("Continuing…");
     if (!/\s$/.test(getState().draftText)) setState((p) => ({ draftText: p.draftText + " " }));
+    const baseText = getState().draftText;
 
     try {
-      const added = await streamLongform({
+      const { text: added, degenerate } = await streamLongform({
         system: SYSTEM_PROMPT,
         userMessage: buildContinueMessage(getState(), soFar),
         temperature: getState().temperature,
         onToken: (t) => setState((prev) => ({ draftText: prev.draftText + t })),
       });
-      if (!added.trim()) throw new Error("Model returned nothing to add.");
+      // Resync to base + clean result — see the same note in generate() above.
+      setState({ draftText: baseText + added });
+      if (!added.trim()) {
+        throw new Error(
+          degenerate
+            ? "The model produced corrupted/garbled output. Try again, or lower Temperature/top_p in Settings."
+            : "Model returned nothing to add."
+        );
+      }
+      if (degenerate) {
+        toast("Continuation was stopped early after producing corrupted output. Consider lowering Temperature or top_p in Settings.", "error");
+      }
       const st = getState();
       if (st.activeChapter !== null && st.chapters[st.activeChapter]) {
         setState({
